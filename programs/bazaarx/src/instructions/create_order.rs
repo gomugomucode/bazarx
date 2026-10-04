@@ -3,7 +3,7 @@ use crate::errors::BazaarXError;
 use crate::state::{Config, Order, OrderState};
 
 #[derive(Accounts)]
-#[instruction(order_id: u64)]
+#[instruction(order_id: u64, supplier: Pubkey, mint: Pubkey, amount: u64)]
 pub struct CreateOrder<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,

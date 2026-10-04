@@ -7,15 +7,7 @@ use crate::state::{Order, OrderState};
 pub struct ReleasePayment<'info> {
     pub caller: Signer<'info>,
 
-    #[account(
-        mut,
-        seeds = [
-            Order::SEED_PREFIX,
-            order.buyer.as_ref(),
-            &order.order_id.to_le_bytes()
-        ],
-        bump = order.bump,
-    )]
+    #[account(mut)]
     pub order: Account<'info, Order>,
 
     #[account(

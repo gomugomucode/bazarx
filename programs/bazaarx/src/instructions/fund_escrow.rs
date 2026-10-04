@@ -10,12 +10,6 @@ pub struct FundEscrow<'info> {
 
     #[account(
         mut,
-        seeds = [
-            Order::SEED_PREFIX,
-            order.buyer.as_ref(),
-            &order.order_id.to_le_bytes()
-        ],
-        bump = order.bump,
         has_one = buyer @ BazaarXError::UnauthorizedBuyer,
     )]
     pub order: Account<'info, Order>,
