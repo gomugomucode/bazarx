@@ -109,6 +109,21 @@ export async function fetchOnChainConfig(connection: Connection = getConnection(
 }
 
 /**
+ * Queries token account balance directly from Solana Devnet RPC
+ */
+export async function fetchTokenBalance(
+  connection: Connection,
+  tokenAccount: PublicKey
+): Promise<number | null> {
+  try {
+    const balance = await connection.getTokenAccountBalance(tokenAccount);
+    return balance.value.uiAmount ?? 0;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
  * Generates Solana Explorer links
  */
 export function getExplorerTxUrl(txSignature: string, cluster: string = 'devnet'): string {

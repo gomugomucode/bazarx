@@ -77,10 +77,10 @@ export default function HomePage() {
               Browse Wholesale Marketplace
             </Link>
             <Link
-              href="/orders/ord-1001"
+              href="/orders/ord-80024"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-sm transition-all"
             >
-              View Live Escrow Lifecycle Demo
+              View Live Devnet Escrow Order (#80024)
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

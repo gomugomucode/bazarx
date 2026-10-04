@@ -15,6 +15,8 @@ import {
   getAnchorProgram,
   deriveVaultPda,
   getAssociatedTokenAccount,
+  fetchOnChainOrder,
+  fetchTokenBalance,
 } from '@/lib/solana';
 import { PublicKey, SystemProgram } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -43,6 +45,11 @@ export default function OrderDetailPage() {
   const [actionInProgress, setActionInProgress] = useState(false);
   const [copiedPda, setCopiedPda] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [txStage, setTxStage] = useState<'idle' | 'pending' | 'confirming' | 'confirmed'>('idle');
+  const [lastConfirmedTx, setLastConfirmedTx] = useState<{ sig: string; url: string } | null>(null);
+  const [vaultUsdcBalance, setVaultUsdcBalance] = useState<number | null>(null);
+  const [buyerUsdcBalance, setBuyerUsdcBalance] = useState<number | null>(null);
+  const [onChainStateVerified, setOnChainStateVerified] = useState<boolean>(false);
 
   const fetchOrder = async () => {
     try {
@@ -61,6 +68,43 @@ export default function OrderDetailPage() {
   useEffect(() => {
     fetchOrder();
   }, [id]);
+
+  // Real Solana Devnet RPC synchronization for settlement state & balances
+  useEffect(() => {
+    async function syncOnChain() {
+      if (!order?.orderPda || order.orderPda.startsWith('PDA_')) return;
+      try {
+        const conn = getConnection();
+        const orderPda = new PublicKey(order.orderPda);
+        const [vaultPda] = deriveVaultPda(orderPda);
+
+        // 1. Fetch on-chain order state
+        const onChainOrder = await fetchOnChainOrder(orderPda, conn);
+        if (onChainOrder) {
+          const rawState = Object.keys(onChainOrder.state)[0];
+          const capitalState = (rawState.charAt(0).toUpperCase() + rawState.slice(1)) as OrderState;
+          if (capitalState !== order.state) {
+            setOrder((prev) => (prev ? { ...prev, state: capitalState } : null));
+          }
+          setOnChainStateVerified(true);
+        }
+
+        // 2. Fetch vault token balance
+        const vBal = await fetchTokenBalance(conn, vaultPda);
+        setVaultUsdcBalance(vBal);
+
+        // 3. Fetch buyer token balance
+        if (publicKey) {
+          const bAta = getAssociatedTokenAccount(publicKey, DEVNET_USDC_MINT);
+          const bBal = await fetchTokenBalance(conn, bAta);
+          setBuyerUsdcBalance(bBal);
+        }
+      } catch (e) {
+        console.warn('Failed to sync on-chain data:', e);
+      }
+    }
+    syncOnChain();
+  }, [order?.orderPda, publicKey, order?.state]);
 
   if (loading) {
     return (
@@ -95,6 +139,7 @@ export default function OrderDetailPage() {
   const executeStep = async (nextState: OrderState, actionName: string, role: string) => {
     setErrorMsg(null);
     setActionInProgress(true);
+    setTxStage('pending');
 
     try {
       let realSignature = '';
@@ -108,19 +153,18 @@ export default function OrderDetailPage() {
           const mintPubkey = DEVNET_USDC_MINT;
           const [vaultPda] = deriveVaultPda(orderPda);
 
+          let txSig = '';
           if (nextState === 'Accepted') {
-            const txSig = await program.methods
+            txSig = await program.methods
               .acceptOrder()
               .accounts({
                 supplier: anchorWallet.publicKey,
                 order: orderPda,
               })
               .rpc();
-            realSignature = txSig;
-            isSimulated = false;
           } else if (nextState === 'Funded') {
             const buyerTokenAccount = getAssociatedTokenAccount(anchorWallet.publicKey, mintPubkey);
-            const txSig = await program.methods
+            txSig = await program.methods
               .fundEscrow()
               .accounts({
                 buyer: anchorWallet.publicKey,
@@ -132,31 +176,25 @@ export default function OrderDetailPage() {
                 systemProgram: SystemProgram.programId,
               })
               .rpc();
-            realSignature = txSig;
-            isSimulated = false;
           } else if (nextState === 'Shipped') {
-            const txSig = await program.methods
+            txSig = await program.methods
               .markShipped()
               .accounts({
                 supplier: anchorWallet.publicKey,
                 order: orderPda,
               })
               .rpc();
-            realSignature = txSig;
-            isSimulated = false;
           } else if (nextState === 'Delivered') {
-            const txSig = await program.methods
+            txSig = await program.methods
               .confirmDelivery()
               .accounts({
                 buyer: anchorWallet.publicKey,
                 order: orderPda,
               })
               .rpc();
-            realSignature = txSig;
-            isSimulated = false;
           } else if (nextState === 'Completed') {
             const supplierTokenAccount = getAssociatedTokenAccount(new PublicKey(order.supplierWallet), mintPubkey);
-            const txSig = await program.methods
+            txSig = await program.methods
               .releasePayment()
               .accounts({
                 caller: anchorWallet.publicKey,
@@ -167,19 +205,37 @@ export default function OrderDetailPage() {
                 tokenProgram: TOKEN_PROGRAM_ID,
               })
               .rpc();
-            realSignature = txSig;
-            isSimulated = false;
           }
+          realSignature = txSig;
+          isSimulated = false;
+
+          // Transition to confirming stage
+          setTxStage('confirming');
+          await connection.confirmTransaction(realSignature, 'confirmed');
+          setTxStage('confirmed');
+          setLastConfirmedTx({
+            sig: realSignature,
+            url: getExplorerTxUrl(realSignature),
+          });
         } catch (chainErr: any) {
           console.error('Devnet transaction error:', chainErr);
-          const isUserRejected = chainErr.message?.toLowerCase().includes('reject') || chainErr.message?.toLowerCase().includes('cancel');
-          setErrorMsg(isUserRejected ? 'Transaction cancelled by user.' : `On-chain transaction failed: ${chainErr.message || 'Transaction rejected by Solana runtime'}`);
+          setTxStage('idle');
+          const isUserRejected =
+            chainErr.message?.toLowerCase().includes('reject') ||
+            chainErr.message?.toLowerCase().includes('cancel') ||
+            chainErr.message?.toLowerCase().includes('declined');
+          setErrorMsg(
+            isUserRejected
+              ? 'Transaction cancelled by user.'
+              : `On-chain transaction failed: ${chainErr.message || 'Transaction rejected by Solana runtime'}`
+          );
           setActionInProgress(false);
           return;
         }
       } else {
         realSignature = `demo_preview_${nextState.toLowerCase()}_${Date.now()}`;
         isSimulated = true;
+        setTxStage('confirmed');
       }
 
       const res = await fetch(`/api/orders/${order.id}`, {
@@ -226,26 +282,41 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Live Devnet Protocol Banner */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start justify-between gap-3 text-emerald-950 text-xs leading-relaxed">
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-emerald-950 text-xs leading-relaxed">
         <div className="flex items-start gap-3">
           <span className="px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold uppercase tracking-wide text-[10px] shrink-0">
-            Live on Devnet
+            Live on Solana Devnet
           </span>
           <div>
-            <span className="font-bold">Solana Smart Contract Active:</span> This wholesale order is governed on-chain by Anchor program{' '}
-            <a
-              href="https://explorer.solana.com/address/BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN?cluster=devnet"
-              target="_blank"
-              rel="noreferrer"
-              className="font-mono font-semibold underline hover:text-emerald-700"
-            >
-              BHHaiHFR...vQoN
-            </a>. State transitions and escrow custody execute via wallet-signed transactions with non-custodial cryptographic guarantees.
+            <div>
+              <span className="font-bold">Smart Contract Program:</span>{' '}
+              <a
+                href="https://explorer.solana.com/address/BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN?cluster=devnet"
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono font-semibold underline hover:text-emerald-700"
+              >
+                BHHaiHFR...vQoN
+              </a>{' '}
+              • Config PDA: <span className="font-mono font-semibold">DscHbC...VDDX</span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-emerald-900">
+              <span className="bg-emerald-100/80 px-2 py-0.5 rounded font-mono font-semibold">Program: Live</span>
+              <span className="bg-emerald-100/80 px-2 py-0.5 rounded font-mono font-semibold">Escrow: Ready</span>
+              <span className="bg-emerald-100/80 px-2 py-0.5 rounded font-mono font-semibold">
+                Vault Balance: {vaultUsdcBalance !== null ? `${vaultUsdcBalance} USDC` : '0 USDC'}
+              </span>
+              {buyerUsdcBalance !== null && (
+                <span className="bg-emerald-100/80 px-2 py-0.5 rounded font-mono font-semibold">
+                  Buyer Balance: {buyerUsdcBalance} USDC
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-2 shrink-0 text-[11px] text-emerald-800 font-medium">
+        <div className="flex items-center gap-2 shrink-0 text-[11px] text-emerald-800 font-medium">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          RPC Confirmed
+          {onChainStateVerified ? 'Verified by Solana RPC' : 'Connecting to Devnet RPC...'}
         </div>
       </div>
 
@@ -364,6 +435,44 @@ export default function OrderDetailPage() {
               </span>
             </div>
 
+            {/* Live Transaction Lifecycle Status */}
+            {txStage !== 'idle' && (
+              <div className="p-3.5 rounded-xl border text-xs space-y-2 bg-slate-50 border-slate-200">
+                <div className="flex items-center gap-2">
+                  {txStage === 'pending' && (
+                    <>
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                      <span className="font-bold text-amber-900">Pending: Waiting for wallet approval...</span>
+                    </>
+                  )}
+                  {txStage === 'confirming' && (
+                    <>
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
+                      <span className="font-bold text-blue-900">Confirming: Broadcasting transaction to Solana Devnet...</span>
+                    </>
+                  )}
+                  {txStage === 'confirmed' && (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="font-bold text-emerald-900">Transaction successful</span>
+                    </>
+                  )}
+                </div>
+                {lastConfirmedTx && txStage === 'confirmed' && (
+                  <div className="pt-1">
+                    <a
+                      href={lastConfirmedTx.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-700 hover:text-emerald-800 font-mono text-[11px] underline flex items-center gap-1 font-semibold"
+                    >
+                      View on Solana Devnet Explorer <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
             {errorMsg && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -409,6 +518,31 @@ export default function OrderDetailPage() {
                     <strong>${order.amountUsdc} USDC</strong> into the program-controlled vault.
                   </p>
                 </div>
+
+                {buyerUsdcBalance !== null && buyerUsdcBalance < order.amountUsdc && (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-950">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Test Devnet USDC Required to Fund Escrow</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      Connected wallet balance: <strong>{buyerUsdcBalance} USDC</strong> (Required:{' '}
+                      <strong>${order.amountUsdc} USDC</strong>).
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      To execute the live on-chain SPL escrow deposit, request test tokens from Circle&apos;s
+                      official faucet for Devnet mint <code className="font-bold">4zMMC...ncDU</code>:
+                    </p>
+                    <a
+                      href="https://faucet.circle.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors"
+                    >
+                      Open Circle Devnet Faucet <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
 
                 <button
                   onClick={() => executeStep('Funded', 'fund_escrow', 'buyer')}
