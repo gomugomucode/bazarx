@@ -11,7 +11,6 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { TransactionStatus, TxLifecycleStage } from '@/components/TransactionStatus';
 import {
   shortenAddress,
-  getExplorerTxUrl,
   getExplorerAccountUrl,
   DEVNET_USDC_MINT,
   getConnection,
@@ -36,8 +35,8 @@ import {
   Copy,
   Check,
   Wallet,
-  AlertTriangle,
   Info,
+  HelpCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -53,9 +52,9 @@ export default function OrderDetailPage() {
   const [copiedPda, setCopiedPda] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 6-State Transaction Lifecycle
+  // 6-Stage Transaction Lifecycle
   const [txStage, setTxStage] = useState<TxLifecycleStage>('ready');
-  const [txActionTitle, setTxActionTitle] = useState<string>('Transaction');
+  const [txActionTitle, setTxActionTitle] = useState<string>('Fund Escrow');
   const [activeSignature, setActiveSignature] = useState<string | null>(null);
 
   // Confirmation Modal State for dangerous/irreversible operations
@@ -166,7 +165,7 @@ export default function OrderDetailPage() {
     setTimeout(() => setCopiedPda(false), 2000);
   };
 
-  // Trigger Confirmation Modal for high impact actions
+  // Trigger Confirmation Modal before signing high-impact financial transactions
   const triggerStepWithConfirmation = (
     nextState: OrderState,
     actionName: string,
@@ -192,11 +191,11 @@ export default function OrderDetailPage() {
     });
   };
 
-  // State Transition Actions
+  // State Transition Actions with 6-stage lifecycle
   const executeStep = async (nextState: OrderState, actionName: string, role: string) => {
     setErrorMsg(null);
     setActionInProgress(true);
-    setTxActionTitle(actionName.replace('_', ' ').toUpperCase());
+    setTxActionTitle(actionName === 'fund_escrow' ? 'Fund Escrow' : actionName.replace('_', ' ').toUpperCase());
     setTxStage('waiting_approval');
     setActiveSignature(null);
 
@@ -205,12 +204,44 @@ export default function OrderDetailPage() {
       let isSimulated = true;
 
       if (anchorWallet && order.orderPda && !order.orderPda.startsWith('PDA_')) {
+        const connection = getConnection();
+
+        // Pre-validation checks for Funding Escrow
+        if (nextState === 'Funded') {
+          // Check SOL balance for fees
+          const lamports = await connection.getBalance(anchorWallet.publicKey, 'confirmed');
+          if (lamports < 0.001 * 1e9) {
+            setTxStage('failed');
+            setErrorMsg('Insufficient SOL for transaction fees. Please request Devnet SOL for network gas.');
+            setActionInProgress(false);
+            return;
+          }
+
+          // Check USDC token balance
+          const buyerTokenAccount = getAssociatedTokenAccount(anchorWallet.publicKey, DEVNET_USDC_MINT);
+          let currentUsdc = 0;
+          try {
+            const tokenResp = await connection.getTokenAccountBalance(buyerTokenAccount, 'confirmed');
+            currentUsdc = tokenResp.value.uiAmount ?? 0;
+          } catch {
+            currentUsdc = 0;
+          }
+
+          if (currentUsdc < order.amountUsdc) {
+            setTxStage('failed');
+            setErrorMsg(`Insufficient USDC balance. Required: ${order.amountUsdc}.00 USDC, available: ${currentUsdc.toFixed(2)} USDC.`);
+            setActionInProgress(false);
+            return;
+          }
+        }
+
         try {
-          const connection = getConnection();
           const program = getAnchorProgram(connection, anchorWallet);
           const orderPda = new PublicKey(order.orderPda);
           const mintPubkey = DEVNET_USDC_MINT;
           const [vaultPda] = deriveVaultPda(orderPda);
+
+          setTxStage('sending');
 
           let txSig = '';
           if (nextState === 'Accepted') {
@@ -270,27 +301,27 @@ export default function OrderDetailPage() {
           isSimulated = false;
           setActiveSignature(realSignature);
 
-          // Transition to sending & confirming stage
+          // Confirming state on Solana
           setTxStage('confirming');
           await connection.confirmTransaction(realSignature, 'confirmed');
           setTxStage('confirmed');
         } catch (chainErr: any) {
           console.error('Devnet transaction error:', chainErr);
           setTxStage('failed');
-          const isUserRejected =
-            chainErr.message?.toLowerCase().includes('reject') ||
-            chainErr.message?.toLowerCase().includes('cancel') ||
-            chainErr.message?.toLowerCase().includes('declined');
-          setErrorMsg(
-            isUserRejected
-              ? 'Transaction was cancelled in the wallet.'
-              : `On-chain transaction failed: ${chainErr.message || 'Transaction rejected by Solana runtime'}`
-          );
+          const rawMsg = chainErr.message?.toLowerCase() || '';
+
+          if (rawMsg.includes('reject') || rawMsg.includes('cancel') || rawMsg.includes('declined') || rawMsg.includes('user rejected')) {
+            setErrorMsg('Transaction cancelled.');
+          } else if (rawMsg.includes('insufficient funds') || rawMsg.includes('0x1')) {
+            setErrorMsg('Insufficient USDC balance or SOL for transaction fees.');
+          } else {
+            setErrorMsg(`On-chain transaction failed: ${chainErr.message || 'Transaction rejected by Solana runtime'}`);
+          }
           setActionInProgress(false);
           return;
         }
       } else {
-        // Fallback for demonstration when no wallet is attached
+        // Fallback preview mode when running without connected signing wallet
         realSignature = `demo_preview_${nextState.toLowerCase()}_${Date.now()}`;
         isSimulated = true;
         setActiveSignature(realSignature);
@@ -364,7 +395,7 @@ export default function OrderDetailPage() {
               <a
                 href={getExplorerAccountUrl('BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN', 'devnet')}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="font-mono font-semibold text-emerald-800 underline hover:text-emerald-950 inline-flex items-center gap-1"
               >
                 BHHaiHFR...vQoN <ExternalLink className="w-2.5 h-2.5" />
@@ -377,11 +408,14 @@ export default function OrderDetailPage() {
 
             <div className="flex flex-wrap items-center gap-2 text-[11px] pt-0.5">
               <span className="bg-white/80 border border-emerald-200/60 px-2 py-0.5 rounded font-mono font-semibold text-slate-800">
-                Vault Balance: {vaultUsdcBalance !== null ? `${vaultUsdcBalance} USDC` : '0 USDC'}
+                Escrow Vault:{' '}
+                {vaultUsdcBalance !== null && vaultUsdcBalance > 0
+                  ? `${vaultUsdcBalance.toFixed(2)} USDC (Locked in Escrow)`
+                  : '0.00 USDC (Unfunded — Awaiting Buyer Deposit)'}
               </span>
               {buyerUsdcBalance !== null && (
                 <span className="bg-white/80 border border-emerald-200/60 px-2 py-0.5 rounded font-mono font-semibold text-slate-800">
-                  Buyer Balance: {buyerUsdcBalance} USDC
+                  Buyer Balance: {buyerUsdcBalance.toFixed(2)} USDC
                 </span>
               )}
             </div>
@@ -412,7 +446,7 @@ export default function OrderDetailPage() {
           <div className="text-left md:text-right">
             <span className="text-xs text-slate-400 font-medium block">Total Escrow Value</span>
             <div className="text-3xl font-black text-slate-900">
-              ${order.amountUsdc}{' '}
+              ${order.amountUsdc}.00{' '}
               <span className="text-sm font-semibold text-emerald-600">USDC</span>
             </div>
             <span className="text-[11px] text-slate-400 font-mono">
@@ -428,7 +462,7 @@ export default function OrderDetailPage() {
             <a
               href={getExplorerAccountUrl(order.buyerWallet, 'devnet')}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-slate-800 font-semibold hover:text-emerald-700 flex items-center gap-1 truncate"
             >
               {shortenAddress(order.buyerWallet, 5)}
@@ -442,7 +476,7 @@ export default function OrderDetailPage() {
             <a
               href={getExplorerAccountUrl(order.supplierWallet, 'devnet')}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-slate-800 font-semibold hover:text-emerald-700 flex items-center gap-1 truncate"
             >
               {shortenAddress(order.supplierWallet, 5)}
@@ -469,7 +503,7 @@ export default function OrderDetailPage() {
             <a
               href={getExplorerAccountUrl(order.orderPda, 'devnet')}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-emerald-700 font-semibold hover:text-emerald-800 flex items-center gap-1 truncate"
             >
               {shortenAddress(order.orderPda, 5)}
@@ -483,7 +517,7 @@ export default function OrderDetailPage() {
             <a
               href={getExplorerAccountUrl(DEVNET_USDC_MINT.toBase58(), 'devnet')}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-slate-800 font-semibold hover:text-emerald-700 flex items-center gap-1 truncate"
             >
               {shortenAddress(DEVNET_USDC_MINT.toBase58(), 5)}
@@ -502,7 +536,9 @@ export default function OrderDetailPage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <h3 className="font-bold text-sm text-slate-900">Next Action Required</h3>
+                <h3 className="font-bold text-sm text-slate-900">
+                  {order.state === 'Accepted' ? 'NEXT ACTION: Fund Escrow' : 'Next Action Required'}
+                </h3>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                 Stage: {order.state}
@@ -553,7 +589,7 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {/* Connected Role Advice (if connected wallet doesn't match current actor) */}
+            {/* Connected Role Advice */}
             {connected && (
               <>
                 {order.state === 'Created' && !isSupplierConnected && (
@@ -594,8 +630,7 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-blue-900">
-                    The buyer has created the order on Solana. The designated supplier must review
-                    terms and sign the <code>accept_order</code> instruction on-chain.
+                    Record that the supplier commits to wholesale inventory dispatch under agreed terms.
                   </p>
                 </div>
 
@@ -615,46 +650,53 @@ export default function OrderDetailPage() {
                     )}
                   </button>
                   <p className="text-[11px] text-center text-slate-400">
-                    Requires wallet signature • Commits stock &amp; dispatch SLA
+                    Requires wallet signature • Commits stock &amp; delivery timeline
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Stage 2: Accepted -> Next Action: Buyer Funds Escrow */}
+            {/* Stage 2: Accepted -> NEXT ACTION: Fund Escrow */}
             {order.state === 'Accepted' && (
               <div className="space-y-4">
-                <div className="p-4 bg-emerald-50/60 border border-emerald-200/80 rounded-xl text-xs text-emerald-950 space-y-1.5">
-                  <div className="flex items-center justify-between font-bold">
-                    <span>Step 3: Fund Escrow Vault</span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
-                      Buyer Action
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-xs">
+                      Lock payment into Solana escrow program
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Buyer Action Required
                     </span>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-emerald-900">
-                    Lock <strong>${order.amountUsdc}.00 USDC</strong> into the Solana escrow program vault.
-                    Funds are program-governed and cannot be withdrawn by the supplier until delivery is confirmed.
+                  <p className="text-slate-600 leading-relaxed text-xs">
+                    Lock the order amount into the Solana escrow program. Funds remain protected in the vault until you confirm physical delivery.
                   </p>
+                  <div className="flex items-baseline justify-between pt-2 border-t border-slate-200">
+                    <span className="text-slate-500 font-medium">Escrow Amount:</span>
+                    <span className="text-lg font-black text-slate-900">
+                      ${order.amountUsdc}.00 <span className="text-xs font-semibold text-emerald-600">USDC</span>
+                    </span>
+                  </div>
                 </div>
 
-                {/* Devnet balance alert if insufficient */}
+                {/* Helpful Zero/Low USDC note */}
                 {buyerUsdcBalance !== null && buyerUsdcBalance < order.amountUsdc && (
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-2">
-                    <div className="flex items-center gap-1.5 font-bold text-amber-950">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Test Devnet USDC Required to Fund Escrow</span>
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                      <HelpCircle className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Need Devnet USDC to test funding?</span>
                     </div>
-                    <p className="text-[11px] leading-relaxed">
-                      Connected wallet balance: <strong>{buyerUsdcBalance} USDC</strong> (Required:{' '}
-                      <strong>${order.amountUsdc} USDC</strong>).
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Connected wallet balance: <strong>{buyerUsdcBalance.toFixed(2)} USDC</strong> (Required:{' '}
+                      <strong>${order.amountUsdc}.00 USDC</strong>).
                     </p>
                     <a
                       href="https://faucet.circle.com"
                       target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 font-semibold text-xs underline"
                     >
-                      Request Circle Devnet USDC <ExternalLink className="w-3 h-3" />
+                      Request Devnet USDC from Circle Faucet <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
                 )}
@@ -666,16 +708,16 @@ export default function OrderDetailPage() {
                         'Funded',
                         'fund_escrow',
                         'buyer',
-                        'Confirm Escrow Funding',
-                        `You are locking $${order.amountUsdc} USDC into the non-custodial Solana smart contract vault for ${order.productName}.`,
+                        'Fund Escrow Confirmation',
+                        'Your wallet will sign this transaction to transfer and lock USDC into the non-custodial Solana escrow vault.',
                         [
-                          { label: 'Commodity', value: order.productName },
-                          { label: 'Quantity', value: `${order.quantity} ${order.unit}s` },
-                          { label: 'Wholesale Amount', value: `$${order.amountUsdc}.00 USDC` },
-                          { label: 'Order PDA', value: shortenAddress(order.orderPda, 6), isMono: true },
+                          { label: 'Amount', value: `${order.amountUsdc}.00 USDC` },
+                          { label: 'Destination', value: 'Solana Escrow Vault PDA', isMono: true },
+                          { label: 'Purpose', value: 'Lock payment until delivery confirmation' },
+                          { label: 'Settlement Token', value: 'Circle Devnet USDC' },
                         ],
-                        'Funds remain secured in the program vault until you cryptographically confirm physical receipt.',
-                        `Lock $${order.amountUsdc} USDC in Escrow`,
+                        'Funds are locked in a Solana escrow program. BazaarX never takes custody of your funds. Payment is released after delivery confirmation.',
+                        `Fund Escrow (${order.amountUsdc}.00 USDC)`,
                         'bg-emerald-600 hover:bg-emerald-500'
                       )
                     }
@@ -683,16 +725,16 @@ export default function OrderDetailPage() {
                     className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {actionInProgress ? (
-                      'Transferring USDC to Escrow Vault...'
+                      'Processing Escrow Funding...'
                     ) : (
                       <>
                         <Lock className="w-4 h-4" />
-                        Fund Escrow (${order.amountUsdc} USDC)
+                        Fund Escrow (${order.amountUsdc}.00 USDC)
                       </>
                     )}
                   </button>
                   <p className="text-[11px] text-center text-slate-400">
-                    Requires wallet signature • Transferred directly to program vault
+                    Your wallet signs this transaction • Transferred directly to program vault
                   </p>
                 </div>
               </div>
@@ -709,7 +751,7 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-indigo-900">
-                    Escrow funds are verified and locked in the smart contract. Record that the supplier has dispatched this order via highway logistics.
+                    Record that the supplier has dispatched this order along the designated freight corridor.
                   </p>
                 </div>
 
@@ -729,7 +771,7 @@ export default function OrderDetailPage() {
                     )}
                   </button>
                   <p className="text-[11px] text-center text-slate-400">
-                    Requires wallet signature • Records dispatch along trade corridor
+                    Your wallet signs this transaction • Dispatches highway consignment
                   </p>
                 </div>
               </div>
@@ -746,7 +788,7 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-teal-900">
-                    Confirm that the goods were received at the receiving depot. This allows settlement to proceed.
+                    Confirm that the goods were received. This allows settlement to proceed.
                   </p>
                 </div>
 
@@ -766,7 +808,7 @@ export default function OrderDetailPage() {
                     )}
                   </button>
                   <p className="text-[11px] text-center text-slate-400">
-                    Requires wallet signature • Buyer confirms physical condition
+                    Your wallet signs this transaction • Verifies physical receipt
                   </p>
                 </div>
               </div>
@@ -783,7 +825,7 @@ export default function OrderDetailPage() {
                     </span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-emerald-900">
-                    Release the escrowed ${order.amountUsdc} USDC to the supplier. This finalizes on-chain settlement.
+                    Release the escrowed ${order.amountUsdc}.00 USDC to the supplier.
                   </p>
                 </div>
 
@@ -795,14 +837,14 @@ export default function OrderDetailPage() {
                         'release_payment',
                         'supplier',
                         'Confirm Settlement Payout',
-                        `This action invokes the release_payment instruction on Solana to transfer $${order.amountUsdc} USDC directly from the vault to the supplier.`,
+                        `This action invokes the release_payment instruction on Solana to transfer $${order.amountUsdc}.00 USDC directly from the vault to the supplier.`,
                         [
-                          { label: 'Amount to Release', value: `$${order.amountUsdc}.00 USDC` },
+                          { label: 'Amount', value: `${order.amountUsdc}.00 USDC` },
                           { label: 'Recipient Supplier', value: shortenAddress(order.supplierWallet, 6), isMono: true },
-                          { label: 'Settlement Token', value: 'Circle Devnet USDC' },
+                          { label: 'Destination Account', value: 'Supplier Associated Token Account' },
                         ],
-                        'This action is irreversible. The smart contract will transfer token authority to the supplier.',
-                        `Release $${order.amountUsdc} USDC Payment`,
+                        'Funds are released from the Solana escrow vault. Payment is transferred directly to the supplier.',
+                        `Release Payment (${order.amountUsdc}.00 USDC)`,
                         'bg-slate-900 hover:bg-slate-800'
                       )
                     }
@@ -819,7 +861,7 @@ export default function OrderDetailPage() {
                     )}
                   </button>
                   <p className="text-[11px] text-center text-slate-400">
-                    Requires wallet signature • Automated transfer to supplier
+                    Your wallet signs this transaction • Smart contract transfers funds to supplier
                   </p>
                 </div>
               </div>
@@ -831,21 +873,24 @@ export default function OrderDetailPage() {
                 <CheckCheck className="w-8 h-8 text-emerald-600 mx-auto" />
                 <p className="font-bold text-sm text-emerald-950">Settlement Complete</p>
                 <p className="text-[11px] text-emerald-800 leading-relaxed">
-                  The smart contract has released ${order.amountUsdc} USDC to the supplier. All terms and delivery requirements satisfied on Solana Devnet.
+                  The smart contract has released ${order.amountUsdc}.00 USDC to the supplier. All terms and delivery requirements satisfied on Solana Devnet.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Non-Custodial Trust & Transparency Box */}
+          {/* Precise Trust & Transparency Box */}
           <div className="p-4 rounded-xl bg-slate-900 text-slate-300 text-xs leading-relaxed space-y-2 border border-slate-800">
             <div className="flex items-center gap-2 text-emerald-400 font-bold">
               <ShieldCheck className="w-4 h-4" />
-              Trustless Escrow Guarantee
+              Non-Custodial Settlement
             </div>
-            <p className="text-[11px] text-slate-400">
-              Funds are controlled by the Solana escrow program. Supplier payment is released only after delivery confirmation. Your wallet signs blockchain transactions directly — your funds are never held by BazaarX.
-            </p>
+            <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+              <li>Your wallet signs blockchain transactions directly.</li>
+              <li>Funds are locked in a Solana escrow program.</li>
+              <li>Payment is released after delivery confirmation.</li>
+              <li>BazaarX never takes custody of your funds.</li>
+            </ul>
           </div>
         </div>
 
@@ -902,7 +947,7 @@ export default function OrderDetailPage() {
                         <a
                           href={tx.explorerUrl}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                           className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline flex items-center gap-1 font-mono text-[11px]"
                         >
                           {shortenAddress(tx.signature, 6)}

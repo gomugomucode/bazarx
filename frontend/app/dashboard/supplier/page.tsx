@@ -6,7 +6,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Order } from '@/lib/types';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
-import { shortenAddress } from '@/lib/solana';
+import { shortenAddress, getExplorerAccountUrl } from '@/lib/solana';
 import { useWalletBalance } from '@/lib/useWalletBalance';
 import {
   Truck,
@@ -160,6 +160,16 @@ export default function SupplierDashboardPage() {
                       <Copy className="w-3.5 h-3.5" />
                     )}
                   </button>
+
+                  <a
+                    href={getExplorerAccountUrl(publicKey.toBase58(), 'devnet')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors rounded-lg"
+                    title="View wallet on Solana Explorer (Devnet)"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 mt-0.5">

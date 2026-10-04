@@ -142,7 +142,7 @@ export const TransactionStatus: React.FC<TransactionStatusProps> = ({
                 <a
                   href={getExplorerTxUrl(signature, 'devnet')}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 font-mono text-emerald-700 font-bold hover:text-emerald-900 hover:underline bg-white px-2.5 py-1 rounded-lg border border-emerald-200"
                 >
                   <span>Tx: {shortenAddress(signature, 8)}</span>

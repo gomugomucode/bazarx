@@ -214,7 +214,7 @@ export const Timeline: React.FC<Props> = ({ order }) => {
                           <a
                             href={tx.explorerUrl}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline flex items-center gap-1"
                           >
                             <span>{shortenAddress(tx.signature, 6)}</span>
