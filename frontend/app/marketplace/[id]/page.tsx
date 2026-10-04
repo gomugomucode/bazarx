@@ -31,10 +31,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { TransactionStatus, TxLifecycleStage } from '@/components/TransactionStatus';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const { publicKey, connected } = useWallet();
   const anchorWallet = useAnchorWallet();
   const { setVisible: openWalletModal } = useWalletModal();
@@ -96,7 +98,13 @@ export default function ProductDetailPage() {
   const totalAmountNpr = product.priceNpr * quantity;
 
   const handleCreateOrder = async () => {
-    // Phase 10: If wallet is disconnected, show clean wallet connection prompt without redirecting
+    // Protected action: Creating wholesale order requires authenticated business account
+    if (!user) {
+      router.push(`/login?redirect=/marketplace/${id}`);
+      return;
+    }
+
+    // Settlement Wallet: If wallet is disconnected, show clean wallet connection prompt
     if (!connected || !publicKey) {
       setShowWalletPrompt(true);
       return;
@@ -184,7 +192,7 @@ export default function ProductDetailPage() {
           productId: product.id,
           quantity,
           buyerWallet: buyerPubkey.toBase58(),
-          buyerName: 'Kathmandu Wholesale Retailers Ltd',
+          buyerName: user?.businessName || user?.fullName || 'Wholesale Buyer',
           shippingAddress,
           orderPda: orderPdaString,
           signature: realSignature,
@@ -412,6 +420,33 @@ export default function ProductDetailPage() {
               Your payment will be locked into the Solana program vault. The supplier cannot withdraw funds until you confirm physical inspection.
             </div>
           </div>
+
+          {/* Unauthenticated notice */}
+          {!user && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <Building className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-semibold">Business Account Required</strong>
+                  Sign in or register a verified business profile to create wholesale escrow orders.
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Link
+                  href={`/login?redirect=/marketplace/${product.id}`}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs"
+                >
+                  Register Business
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Connected Buyer Indicator */}
           {connected && publicKey && (

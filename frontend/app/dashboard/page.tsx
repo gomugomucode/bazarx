@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletBalance } from '@/lib/useWalletBalance';
+import { useAuth } from '@/lib/AuthContext';
 import { Order, UserProfile, UserRole } from '@/lib/types';
 
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -11,88 +13,57 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { ActionRequiredCard } from '@/components/dashboard/ActionRequiredCard';
 import { OrdersSection } from '@/components/dashboard/OrdersSection';
-import { OnboardingCard } from '@/components/dashboard/OnboardingCard';
 import { AdminBanner } from '@/components/dashboard/AdminBanner';
-import { WalletGuard } from '@/components/dashboard/WalletGuard';
+import { Lock, ArrowRight } from 'lucide-react';
 
 function UnifiedDashboardContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const { publicKey, connected } = useWallet();
   const { sol, usdc } = useWalletBalance();
-  const searchParams = useSearchParams();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [activeRole, setActiveRole] = useState<'BUYER' | 'SUPPLIER'>('BUYER');
-
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  // 1. Fetch user profile when connected wallet changes
+  // 1. Enforce authentication redirect if logged out
   useEffect(() => {
-    if (!connected || !publicKey) {
-      setProfile(null);
-      setProfileLoading(false);
-      return;
+    if (!authLoading && !user) {
+      router.replace('/login?redirect=/dashboard');
     }
+  }, [authLoading, user, router]);
 
-    let isMounted = true;
-    async function resolveProfile() {
-      setProfileLoading(true);
-      try {
-        const walletAddress = publicKey!.toBase58();
-        const res = await fetch(`/api/users/profile?wallet=${encodeURIComponent(walletAddress)}`, {
-          cache: 'no-store',
-        });
-        const data = await res.json();
+  // 2. Resolve active role based on user.roles and query params
+  useEffect(() => {
+    if (!user) return;
 
-        if (isMounted) {
-          if (data.success && data.profile) {
-            setProfile(data.profile);
-
-            // Determine initial active role: strictly enforce that requested role exists in profile.roles
-            const roleParam = searchParams.get('role')?.toUpperCase();
-            if (
-              roleParam &&
-              (roleParam === 'BUYER' || roleParam === 'SUPPLIER') &&
-              data.profile.roles.includes(roleParam as UserRole)
-            ) {
-              setActiveRole(roleParam as 'BUYER' | 'SUPPLIER');
-            } else if (data.profile.roles.includes('BUYER')) {
-              setActiveRole('BUYER');
-            } else if (data.profile.roles.includes('SUPPLIER')) {
-              setActiveRole('SUPPLIER');
-            } else {
-              setActiveRole('BUYER');
-            }
-          } else {
-            setProfile(null);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to resolve wallet profile:', err);
-        if (isMounted) setProfile(null);
-      } finally {
-        if (isMounted) setProfileLoading(false);
-      }
+    const roleParam = searchParams.get('role')?.toUpperCase();
+    if (
+      roleParam &&
+      (roleParam === 'BUYER' || roleParam === 'SUPPLIER') &&
+      user.roles.includes(roleParam as UserRole)
+    ) {
+      setActiveRole(roleParam as 'BUYER' | 'SUPPLIER');
+    } else if (user.roles.includes('BUYER')) {
+      setActiveRole('BUYER');
+    } else if (user.roles.includes('SUPPLIER')) {
+      setActiveRole('SUPPLIER');
+    } else {
+      setActiveRole('BUYER');
     }
+  }, [user, searchParams]);
 
-    resolveProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [connected, publicKey, searchParams]);
-
-  // 2. Fetch orders filtered by wallet & active role
+  // 3. Fetch orders for authenticated business account
   const fetchOrders = useCallback(async () => {
-    if (!publicKey || !activeRole) return;
+    if (!user || !activeRole) return;
     setOrdersLoading(true);
 
     try {
-      const walletAddress = publicKey.toBase58();
+      const targetWallet = user.wallet || (connected && publicKey ? publicKey.toBase58() : '');
       const roleStr = activeRole.toLowerCase();
       const res = await fetch(
-        `/api/orders?wallet=${encodeURIComponent(walletAddress)}&role=${encodeURIComponent(roleStr)}`,
+        `/api/orders?wallet=${encodeURIComponent(targetWallet)}&role=${encodeURIComponent(roleStr)}`,
         { cache: 'no-store' }
       );
       const data = await res.json();
@@ -107,78 +78,71 @@ function UnifiedDashboardContent() {
     } finally {
       setOrdersLoading(false);
     }
-  }, [publicKey, activeRole]);
+  }, [user, connected, publicKey, activeRole]);
 
   useEffect(() => {
-    if (connected && publicKey && profile) {
+    if (user) {
       fetchOrders();
     }
-  }, [connected, publicKey, profile, activeRole, fetchOrders]);
-
-  // Handle new profile created via OnboardingCard
-  const handleProfileCreated = (newProfile: UserProfile) => {
-    setProfile(newProfile);
-    if (newProfile.roles.includes('SUPPLIER') && !newProfile.roles.includes('BUYER')) {
-      setActiveRole('SUPPLIER');
-    } else {
-      setActiveRole('BUYER');
-    }
-  };
+  }, [user, activeRole, fetchOrders]);
 
   const handleRoleChange = (newRole: 'BUYER' | 'SUPPLIER') => {
-    if (profile?.roles?.includes(newRole)) {
+    if (user?.roles?.includes(newRole)) {
       setActiveRole(newRole);
     }
   };
 
-  // State A: Disconnected Wallet
-  if (!connected || !publicKey) {
-    return (
-      <DashboardShell>
-        <WalletGuard />
-      </DashboardShell>
-    );
-  }
-
-  // State B: Profile Loading Skeleton
-  if (profileLoading) {
+  // State A: Loading session
+  if (authLoading) {
     return (
       <DashboardShell>
         <div className="py-24 text-center space-y-3">
           <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">
-            Resolving business profile for {publicKey.toBase58().slice(0, 4)}...
-          </p>
+          <p className="text-xs text-slate-500 font-medium">Verifying business account session...</p>
         </div>
       </DashboardShell>
     );
   }
 
-  // State C: Connected Unknown Wallet (Show Onboarding)
-  if (!profile) {
+  // State B: Unauthenticated visitor (Hard protect: do not render any dashboard data)
+  if (!user) {
     return (
       <DashboardShell>
-        <OnboardingCard
-          publicKey={publicKey}
-          onProfileCreated={handleProfileCreated}
-        />
+        <div className="py-24 text-center space-y-4 max-w-md mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto shadow-xs">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Sign In Required</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Please sign in with your business account to access the BazaarX wholesale dashboard and trade activity.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/login?redirect=/dashboard"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all"
+            >
+              <span>Sign In to Continue</span>
+              <ArrowRight className="w-4 h-4 text-emerald-400" />
+            </Link>
+          </div>
+        </div>
       </DashboardShell>
     );
   }
 
-  // State D: Connected Known Profile (Unified Dashboard View)
-  const isAdmin = profile.roles.includes('ADMIN');
+  // State C: Authenticated User (Render role-tailored dashboard)
+  const isAdmin = user.roles.includes('ADMIN');
 
   return (
     <DashboardShell>
-      {/* Admin Indicator if wallet has ADMIN role */}
+      {/* Admin Indicator if user has ADMIN role */}
       {isAdmin && <AdminBanner />}
 
       {/* Primary Role-Aware Header */}
       <DashboardHeader
-        profile={profile}
+        profile={user}
         activeRole={activeRole}
-        publicKey={publicKey}
+        publicKey={connected && publicKey ? publicKey : null}
         sol={sol}
         usdc={usdc}
         onRoleChange={handleRoleChange}

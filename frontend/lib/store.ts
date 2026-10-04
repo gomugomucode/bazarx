@@ -228,6 +228,30 @@ export const saveUserAccount = (account: UserAccount): UserProfile => {
   return sanitizeUser(account);
 };
 
+export const saveUserProfile = (profile: {
+  wallet: string;
+  businessName: string;
+  roles: UserRole[];
+  createdAt?: string;
+}): UserProfile => {
+  const account: UserAccount = {
+    id: `usr_${Date.now()}_${profile.wallet.slice(0, 6)}`,
+    email: `${profile.wallet.slice(0, 8).toLowerCase()}@wallet.bazarx.internal`,
+    passwordHash: hashPassword('wallet_onboarded_' + profile.wallet),
+    fullName: profile.businessName,
+    businessName: profile.businessName,
+    phone: '+977-9800000000',
+    citizenshipNumber: '00-00-00-00000',
+    role: profile.roles[0] || 'BUYER',
+    roles: profile.roles,
+    verificationStatus: 'PENDING',
+    wallet: profile.wallet,
+    createdAt: profile.createdAt || new Date().toISOString(),
+    updatedAt: profile.createdAt || new Date().toISOString(),
+  };
+  return saveUserAccount(account);
+};
+
 export const updateUserAccount = (id: string, updates: Partial<UserAccount>): UserProfile | null => {
   const users = getUsers();
   const idx = users.findIndex((u) => u.id === id);

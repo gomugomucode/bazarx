@@ -8,9 +8,14 @@ import {
   shortenAddress,
   getExplorerAccountUrl,
 } from '@/lib/solana';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/AuthContext';
 import { ShieldCheck, Cpu, ExternalLink, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AdminProtocolPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [configPda, configBump] = deriveConfigPda();
 
   const rules = [
@@ -45,6 +50,57 @@ export default function AdminProtocolPage() {
       active: true,
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-600 border-t-transparent mx-auto" />
+        <p className="text-slate-500 text-xs font-medium">Verifying administrator credentials...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mx-auto">
+          <Lock className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900">Authentication Required</h2>
+        <p className="text-xs text-slate-500">
+          You must be logged in with an authorized internal Administrator account to view protocol governance.
+        </p>
+        <Link
+          href="/login?redirect=/admin"
+          className="inline-block px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+        >
+          Sign In as Administrator
+        </Link>
+      </div>
+    );
+  }
+
+  if (!user.roles?.includes('ADMIN')) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+          <AlertCircle className="w-6 h-6 text-rose-600" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900">403: Administrator Access Denied</h2>
+        <p className="text-xs text-slate-500">
+          Your authenticated account (<span className="font-semibold text-slate-700">{user.email}</span>) does not possess the internally assigned <code className="bg-slate-100 px-1 py-0.5 rounded text-rose-600 font-mono">ADMIN</code> role.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/dashboard"
+            className="inline-block px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">

@@ -50,10 +50,17 @@ export async function POST(request: Request) {
   } catch (e) {
     // Local store fallback
     try {
-      const { getSession, updateUserAccount } = await import('@/lib/store');
+      const { getSession, getUserByWallet, updateUserAccount } = await import('@/lib/store');
       const session = getSession(token);
       if (!session) {
         return NextResponse.json({ success: false, error: 'Session expired. Please log in.' }, { status: 401 });
+      }
+      const existingOwner = getUserByWallet(cleanWallet);
+      if (existingOwner && existingOwner.id !== session.userId) {
+        return NextResponse.json(
+          { success: false, error: 'This Solana settlement wallet address is already linked to another business account.' },
+          { status: 400 }
+        );
       }
       const updated = updateUserAccount(session.userId, { wallet: cleanWallet });
       return NextResponse.json({ success: true, user: updated });

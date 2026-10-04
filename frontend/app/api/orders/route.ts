@@ -6,19 +6,51 @@ export const revalidate = 0;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 
 export async function GET(request: Request) {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const authHeader = request.headers.get('authorization') || '';
+
   try {
     const { search } = new URL(request.url);
-    const res = await fetch(`${BACKEND_URL}/api/orders${search}`, { cache: 'no-store' });
+    const res = await fetch(`${BACKEND_URL}/api/orders${search}`, {
+      headers: {
+        'Cookie': cookieHeader,
+        'Authorization': authHeader,
+      },
+      cache: 'no-store',
+    });
     if (!res.ok) throw new Error(`Backend status: ${res.status}`);
     const data = await res.json();
     return NextResponse.json(data);
   } catch (err: any) {
     try {
       const { searchParams } = new URL(request.url);
-      const wallet = searchParams.get('wallet');
       const role = searchParams.get('role');
-      const { getOrders } = await import('@/lib/store');
-      return NextResponse.json({ success: true, orders: getOrders(wallet, role) });
+      const queryWallet = searchParams.get('wallet');
+      const { getOrders, getSession, getUserById } = await import('@/lib/store');
+
+      const match = cookieHeader.match(/bazarx_session=([^;]+)/);
+      const token = (authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined) || (match ? decodeURIComponent(match[1]) : undefined);
+
+      if (!token) {
+        return NextResponse.json({ success: false, error: 'Authentication required to view orders', orders: [] }, { status: 401 });
+      }
+
+      const session = getSession(token);
+      if (!session) {
+        return NextResponse.json({ success: false, error: 'Session expired', orders: [] }, { status: 401 });
+      }
+
+      const user = getUserById(session.userId);
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'User not found', orders: [] }, { status: 401 });
+      }
+
+      const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+      if (isAdmin) {
+        return NextResponse.json({ success: true, orders: getOrders(queryWallet || undefined, role) });
+      }
+
+      return NextResponse.json({ success: true, orders: getOrders(user.wallet || undefined, role) });
     } catch (e: any) {
       return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
@@ -33,13 +65,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
   }
 
+  const cookieHeader = request.headers.get('cookie') || '';
+  const authHeader = request.headers.get('authorization') || '';
+
   try {
     const res = await fetch(`${BACKEND_URL}/api/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+        'Authorization': authHeader,
+      },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`Backend status: ${res.status}`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err: any) {

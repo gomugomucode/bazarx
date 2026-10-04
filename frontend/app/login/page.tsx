@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Lock,
   Mail,
@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -31,11 +32,21 @@ export default function LoginPage() {
 
     try {
       const user = await login(email, password);
+      
+      // If a safe return redirect path was provided, use it
+      const redirectTarget = searchParams.get('redirect');
+      if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+        router.push(redirectTarget);
+        return;
+      }
+
       // Role-aware redirection
       if (user.roles?.includes('SUPPLIER') && !user.roles?.includes('BUYER')) {
         router.push('/dashboard?role=SUPPLIER');
-      } else {
+      } else if (user.roles?.includes('BUYER') && !user.roles?.includes('SUPPLIER')) {
         router.push('/dashboard?role=BUYER');
+      } else {
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Invalid email or password.');
@@ -182,5 +193,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[80vh] flex flex-col justify-center items-center py-12">
+          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

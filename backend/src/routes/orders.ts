@@ -1,34 +1,89 @@
 import { Router, Request, Response } from 'express';
 import { store } from '../store';
 import { Order, TransactionRecord } from '../types';
+import { getAuthUser } from './auth';
 
 const router = Router();
 
-// GET /api/orders
+// GET /api/orders (Protected: Requires authenticated business session)
 router.get('/', (req: Request, res: Response) => {
-  const wallet = req.query.wallet as string | undefined;
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required to view orders.',
+      orders: [],
+    });
+  }
+
   const role = req.query.role as string | undefined;
-  const orders = store.getOrders(wallet, role);
-  res.json({ success: true, orders });
+  const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+
+  // Admin can view all orders or filter by query parameters
+  if (isAdmin) {
+    const queryWallet = req.query.wallet as string | undefined;
+    const orders = store.getOrders(queryWallet, role);
+    return res.json({ success: true, orders });
+  }
+
+  // Non-admin users are strictly scoped to their own registered settlement wallet
+  const targetWallet = user.wallet || undefined;
+  const orders = store.getOrders(targetWallet, role);
+  return res.json({ success: true, orders });
 });
 
 // GET /api/orders/:id
 router.get('/:id', (req: Request, res: Response) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required. Please sign in to view this wholesale order.',
+    });
+  }
+
   const order = store.getOrderById(req.params.id);
   if (!order) {
     return res.status(404).json({ success: false, error: 'Order not found' });
   }
-  res.json({ success: true, order });
+
+  // Authorization check: User must be buyer, supplier, or admin
+  const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+  const isBuyer =
+    Boolean(user.wallet && order.buyerWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+    Boolean(user.email && order.buyerEmail?.toLowerCase() === user.email.toLowerCase()) ||
+    order.buyerName === user.businessName ||
+    order.buyerName === user.fullName;
+  const isSupplier =
+    Boolean(user.wallet && order.supplierWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+    Boolean(user.email && order.supplierEmail?.toLowerCase() === user.email.toLowerCase()) ||
+    order.supplierName === user.businessName;
+
+  if (!isAdmin && !isBuyer && !isSupplier) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied: You do not have permission to view this wholesale trade order.',
+    });
+  }
+
+  return res.json({ success: true, order });
 });
 
-// POST /api/orders (Create wholesale order)
+// POST /api/orders (Create wholesale order - requires login)
 router.post('/', (req: Request, res: Response) => {
   try {
+    const user = getAuthUser(req);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please log in or create an account to place wholesale orders.',
+      });
+    }
+
     const {
       productId,
       quantity,
       buyerWallet,
-      buyerName,
       shippingAddress,
       orderPda,
       signature,
@@ -67,8 +122,9 @@ router.post('/', (req: Request, res: Response) => {
       quantity: Number(quantity) || 1,
       unit: product.unit,
       amountUsdc: calculatedAmount,
-      buyerWallet: buyerWallet || 'DemoBuyerWallet',
-      buyerName: buyerName || 'Nepal Wholesale Retailer',
+      buyerWallet: buyerWallet || user.wallet || 'DemoBuyerWallet',
+      buyerName: user.businessName || user.fullName || req.body.buyerName || 'Nepal Wholesale Retailer',
+      buyerEmail: user.email,
       supplierWallet: product.supplierWallet,
       supplierName: product.supplierName,
       shippingAddress: shippingAddress || 'Kathmandu, Nepal',

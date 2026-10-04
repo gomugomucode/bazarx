@@ -39,15 +39,21 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const { publicKey, connected } = useWallet();
   const anchorWallet = useAnchorWallet();
   const { setVisible: openWalletModal } = useWalletModal();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unauthenticated, setUnauthenticated] = useState(false);
+  const [unauthorized, setUnauthorized] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [copiedPda, setCopiedPda] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -78,9 +84,19 @@ export default function OrderDetailPage() {
   const fetchOrder = async () => {
     try {
       const res = await fetch(`/api/orders/${id}`);
+      if (res.status === 401) {
+        setUnauthenticated(true);
+        return;
+      }
+      if (res.status === 403) {
+        setUnauthorized(true);
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.order) {
         setOrder(data.order);
+      } else {
+        setOrder(null);
       }
     } catch (err) {
       console.error('Failed to load order', err);
@@ -130,11 +146,58 @@ export default function OrderDetailPage() {
     syncOnChain();
   }, [order?.orderPda, publicKey, order?.state]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-20 text-center space-y-3">
         <div className="animate-spin rounded-full h-9 w-9 border-2 border-emerald-600 border-t-transparent mx-auto" />
-        <p className="text-slate-500 text-xs font-medium">Querying Solana Devnet order state...</p>
+        <p className="text-slate-500 text-xs font-medium">Loading trade and verifying authorization...</p>
+      </div>
+    );
+  }
+
+  // Guard 1: Logged-out visitor
+  if (!user || unauthenticated) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto shadow-xs">
+          <Lock className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Sign In Required</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Wholesale order records contain private commercial trade details. Please sign in to view this consignment.
+        </p>
+        <div className="pt-2">
+          <Link
+            href={`/login?redirect=/orders/${id}`}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all"
+          >
+            <span>Sign In to Access Order</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Guard 2: Unauthorized counterparty
+  if (unauthorized) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-xs">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Access Denied</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          You do not have permission to view wholesale order #{id}. This consignment belongs to another trading account.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-md"
+          >
+            <ArrowLeft className="w-4 h-4 text-emerald-400" />
+            <span>Back to My Dashboard</span>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -155,6 +218,41 @@ export default function OrderDetailPage() {
         >
           <ArrowLeft className="w-4 h-4" /> Go to Dashboard
         </Link>
+      </div>
+    );
+  }
+
+  // Client-side role ownership verification
+  const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+  const isBuyerRole =
+    Boolean(user.wallet && order.buyerWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+    Boolean(user.email && order.buyerEmail?.toLowerCase() === user.email.toLowerCase()) ||
+    order.buyerName === user.businessName ||
+    order.buyerName === user.fullName;
+  const isSupplierRole =
+    Boolean(user.wallet && order.supplierWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+    Boolean(user.email && order.supplierEmail?.toLowerCase() === user.email.toLowerCase()) ||
+    order.supplierName === user.businessName;
+
+  if (!isAdmin && !isBuyerRole && !isSupplierRole) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-xs">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Access Denied</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          You do not have permission to view wholesale order #{order.blockchainOrderId}. This consignment belongs to another trading account.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-md"
+          >
+            <ArrowLeft className="w-4 h-4 text-emerald-400" />
+            <span>Back to My Dashboard</span>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -194,6 +292,13 @@ export default function OrderDetailPage() {
   // State Transition Actions with 6-stage lifecycle
   const executeStep = async (nextState: OrderState, actionName: string, role: string) => {
     setErrorMsg(null);
+
+    if (!anchorWallet) {
+      setErrorMsg('Please connect your Solana settlement wallet to sign this on-chain transaction.');
+      openWalletModal(true);
+      return;
+    }
+
     setActionInProgress(true);
     setTxActionTitle(actionName === 'fund_escrow' ? 'Fund Escrow' : actionName.replace('_', ' ').toUpperCase());
     setTxStage('waiting_approval');
@@ -201,9 +306,9 @@ export default function OrderDetailPage() {
 
     try {
       let realSignature = '';
-      let isSimulated = true;
+      let isSimulated = false;
 
-      if (anchorWallet && order.orderPda && !order.orderPda.startsWith('PDA_')) {
+      if (order?.orderPda && !order.orderPda.startsWith('PDA_')) {
         const connection = getConnection();
 
         // Pre-validation checks for Funding Escrow
@@ -321,7 +426,7 @@ export default function OrderDetailPage() {
           return;
         }
       } else {
-        setErrorMsg('Please connect your Solana wallet to sign this transaction on Devnet.');
+        setErrorMsg('Order escrow account (PDA) is not initialized on Solana Devnet.');
         setTxStage('failed');
         setActionInProgress(false);
         return;
@@ -572,10 +677,10 @@ export default function OrderDetailPage() {
                 </div>
                 <div className="space-y-1">
                   <h4 className="font-bold text-xs text-slate-800">
-                    Wallet Connection Required
+                    Settlement Wallet Required
                   </h4>
                   <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                    To sign on-chain actions for this wholesale order, please connect your Solana wallet.
+                    To sign on-chain escrow transactions for this wholesale order, please connect your Solana wallet.
                   </p>
                 </div>
                 <button
@@ -583,7 +688,7 @@ export default function OrderDetailPage() {
                   className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
                 >
                   <Wallet className="w-4 h-4 text-emerald-400" />
-                  Connect Wallet to Continue
+                  Connect Settlement Wallet
                 </button>
               </div>
             )}

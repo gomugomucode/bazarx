@@ -112,6 +112,17 @@ export async function POST(request: Request) {
         );
       }
 
+      if (cleanWallet) {
+        const { getUserByWallet } = await import('@/lib/store');
+        const existingWallet = getUserByWallet(cleanWallet);
+        if (existingWallet) {
+          return NextResponse.json(
+            { success: false, error: 'This Solana settlement wallet address is already linked to another business account' },
+            { status: 400 }
+          );
+        }
+      }
+
       const now = new Date().toISOString();
       const newAccount = {
         id: `usr_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,

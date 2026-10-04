@@ -70,18 +70,18 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link
-              href="/marketplace"
+              href="/register"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
             >
-              <ShoppingBag className="w-4 h-4" />
-              Browse Wholesale Marketplace
+              <span>Create Business Account</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              href="/orders/ord-80024"
+              href="/marketplace"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-sm transition-all"
             >
-              View Live Devnet Escrow Order (#80024)
-              <ArrowRight className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              Browse Wholesale Marketplace
             </Link>
           </div>
 
@@ -224,21 +224,23 @@ export default function HomePage() {
             Ready to Experience Programmable Wholesale Settlement?
           </h2>
           <p className="text-slate-300 text-sm max-w-2xl mx-auto leading-relaxed">
-            Connect your Solana wallet, browse Nepal wholesale commodities, create a wholesale order,
-            and inspect the verified on-chain state machine.
+            Create your BazaarX business account, browse certified Nepal wholesale commodities,
+            and settle transactions securely with Solana smart contract escrow.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/marketplace"
-              className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md transition-all"
+              href="/register"
+              className="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md transition-all inline-flex items-center gap-2"
             >
-              Enter Wholesale Marketplace
+              <span>Create Business Account</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              href="/dashboard"
-              className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 transition-all"
+              href="/marketplace"
+              className="px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 transition-all inline-flex items-center gap-2"
             >
-              Open Trade Dashboard
+              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              <span>Browse Marketplace</span>
             </Link>
           </div>
         </div>

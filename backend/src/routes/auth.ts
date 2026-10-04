@@ -8,7 +8,7 @@ const SOLANA_PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Helper to extract session token from cookies or Authorization header
-function getSessionToken(req: Request): string | undefined {
+export function getSessionToken(req: Request): string | undefined {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     return req.headers.authorization.slice(7).trim();
   }
@@ -19,7 +19,7 @@ function getSessionToken(req: Request): string | undefined {
 }
 
 // Helper to resolve currently authenticated user
-function getAuthUser(req: Request): UserAccount | null {
+export function getAuthUser(req: Request): UserAccount | null {
   const token = getSessionToken(req);
   if (!token) return null;
   const session = store.getSession(token);
@@ -90,6 +90,13 @@ router.post('/register', (req: Request, res: Response) => {
         return res.status(400).json({ success: false, error: 'Invalid Solana settlement wallet address' });
       }
       cleanWallet = wallet.trim();
+      const existingWalletUser = store.getUserByWallet(cleanWallet);
+      if (existingWalletUser) {
+        return res.status(400).json({
+          success: false,
+          error: 'This Solana settlement wallet address is already linked to another business account',
+        });
+      }
     }
 
     const now = new Date().toISOString();
@@ -203,6 +210,14 @@ router.post('/link-wallet', (req: Request, res: Response) => {
   }
 
   const cleanWallet = wallet.trim();
+  const existingOwner = store.getUserByWallet(cleanWallet);
+  if (existingOwner && existingOwner.id !== user.id) {
+    return res.status(400).json({
+      success: false,
+      error: 'This Solana settlement wallet address is already linked to another business account.',
+    });
+  }
+
   const updated = store.updateUser(user.id, { wallet: cleanWallet });
   return res.json({ success: true, user: updated });
 });

@@ -54,42 +54,5 @@
     "wallet": "HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
-  },
-  {
-    "id": "usr_1791127202049_cac48e46",
-    "email": "testbuyer_1791127202035@bazarx.com",
-    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
-    "fullName": "New Test Buyer",
-    "businessName": "Pokhara Retail Traders",
-    "phone": "+977-9801122334",
-    "citizenshipNumber": "27-01-78-01234",
-    "panNumber": "601234567",
-    "role": "BUYER",
-    "roles": [
-      "BUYER"
-    ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
-    "createdAt": "2026-10-04T15:20:02.049Z",
-    "updatedAt": "2026-10-04T15:20:02.351Z",
-    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K"
-  },
-  {
-    "id": "usr_1791127270776_1149525b",
-    "email": "testbuyer_1791127270706@bazarx.com",
-    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
-    "fullName": "New Test Buyer",
-    "businessName": "Pokhara Retail Traders",
-    "phone": "+977-9801122334",
-    "citizenshipNumber": "27-01-78-01234",
-    "panNumber": "601234567",
-    "role": "BUYER",
-    "roles": [
-      "BUYER"
-    ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
-    "createdAt": "2026-10-04T15:21:10.776Z",
-    "updatedAt": "2026-10-04T15:21:10.776Z"
   }
 ]
