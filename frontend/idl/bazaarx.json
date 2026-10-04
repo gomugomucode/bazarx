@@ -1,0 +1,493 @@
+{
+  "address": "BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN",
+  "metadata": {
+    "name": "bazaarx",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "BazaarX: Nepal's programmable B2B wholesale settlement marketplace on Solana"
+  },
+  "instructions": [
+    {
+      "name": "accept_order",
+      "docs": [
+        "Designated supplier accepts the wholesale order.",
+        "Transitions state from Created to Accepted and records acceptance timestamp."
+      ],
+      "discriminator": [
+        118,
+        157,
+        62,
+        39,
+        239,
+        234,
+        231,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "supplier",
+          "signer": true,
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "order",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "confirm_delivery",
+      "docs": [
+        "Buyer inspects delivered goods and confirms delivery.",
+        "Transitions state from Shipped to Delivered."
+      ],
+      "discriminator": [
+        11,
+        109,
+        227,
+        53,
+        179,
+        190,
+        88,
+        155
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true,
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "order",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_order",
+      "docs": [
+        "Buyer creates a new wholesale order PDA.",
+        "Locks initial state to Created and stamps creation time."
+      ],
+      "discriminator": [
+        141,
+        54,
+        37,
+        207,
+        237,
+        210,
+        250,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "order_id",
+          "type": "u64"
+        },
+        {
+          "name": "supplier",
+          "type": "pubkey"
+        },
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "fund_escrow",
+      "docs": [
+        "Buyer locks wholesale funds into the program-controlled vault PDA.",
+        "Transitions state from Accepted to Funded."
+      ],
+      "discriminator": [
+        155,
+        18,
+        218,
+        141,
+        182,
+        213,
+        69,
+        201
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "order",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_config",
+      "docs": [
+        "Initialize the BazaarX global configuration PDA.",
+        "Sets the admin authority and the canonical USDC mint accepted by the protocol."
+      ],
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "usdc_mint",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "mark_shipped",
+      "docs": [
+        "Designated supplier marks the consignment dispatched.",
+        "Transitions state from Funded to Shipped."
+      ],
+      "discriminator": [
+        239,
+        5,
+        66,
+        105,
+        238,
+        17,
+        89,
+        97
+      ],
+      "accounts": [
+        {
+          "name": "supplier",
+          "signer": true,
+          "relations": [
+            "order"
+          ]
+        },
+        {
+          "name": "order",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "release_payment",
+      "docs": [
+        "Releases escrowed USDC directly from the vault PDA to supplier.",
+        "Transitions state from Delivered to Completed."
+      ],
+      "discriminator": [
+        24,
+        34,
+        191,
+        86,
+        145,
+        160,
+        183,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "order",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "supplier_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Order",
+      "discriminator": [
+        134,
+        173,
+        223,
+        185,
+        77,
+        86,
+        28,
+        51
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidSupplier",
+      "msg": "Supplier wallet cannot be identical to buyer wallet"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidAmount",
+      "msg": "Order amount must be greater than zero"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidMint",
+      "msg": "Supplied token mint does not match configured USDC mint"
+    },
+    {
+      "code": 6003,
+      "name": "UnauthorizedSupplier",
+      "msg": "Only the designated supplier can accept this order"
+    },
+    {
+      "code": 6004,
+      "name": "UnauthorizedBuyer",
+      "msg": "Only the designated buyer can perform this action"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidTokenAccount",
+      "msg": "Token account does not match designated owner or mint"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidOrderState",
+      "msg": "Order state transition is invalid for this instruction"
+    },
+    {
+      "code": 6007,
+      "name": "UnauthorizedAdmin",
+      "msg": "Only the designated admin can perform this action"
+    }
+  ],
+  "types": [
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Order",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
+            "name": "buyer",
+            "type": "pubkey"
+          },
+          {
+            "name": "supplier",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "OrderState"
+              }
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "accepted_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Created"
+          },
+          {
+            "name": "Accepted"
+          },
+          {
+            "name": "Funded"
+          },
+          {
+            "name": "Shipped"
+          },
+          {
+            "name": "Delivered"
+          },
+          {
+            "name": "Disputed"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Refunded"
+          }
+        ]
+      }
+    }
+  ]
+}
