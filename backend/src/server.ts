@@ -9,6 +9,23 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
+// Root status endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.json({
+    name: 'BazaarX Programmable B2B Settlement Backend',
+    status: 'online',
+    version: '1.0.0',
+    network: 'Solana Devnet',
+    endpoints: {
+      health: '/health',
+      products: '/api/products',
+      orders: '/api/orders',
+    },
+    frontendUrl: 'http://localhost:3000',
+    documentation: 'https://github.com/gomugomucode/bazarx/tree/main/docs',
+  });
+});
+
 // Health check
 const healthHandler = (req: Request, res: Response) => {
   res.json({
