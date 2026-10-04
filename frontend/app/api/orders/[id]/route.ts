@@ -39,13 +39,22 @@ export async function PATCH(
       );
     }
 
+    const isSimulated = Boolean(
+      body.isSimulated ||
+      !signature ||
+      signature.startsWith('simulated')
+    );
+
     const txRecord: TransactionRecord = {
       step: nextState,
-      signature: signature || `tx_${nextState.toLowerCase()}_${Date.now()}`,
+      signature: signature || `simulated_${nextState.toLowerCase()}_${Date.now()}`,
       timestamp: new Date().toISOString(),
       signer: signer || 'SignerWallet',
-      explorerUrl: `https://explorer.solana.com/tx/${signature || 'simulated'}?cluster=devnet`,
+      explorerUrl: isSimulated
+        ? undefined
+        : `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
       action: action || `execute_${nextState.toLowerCase()}`,
+      isSimulated,
     };
 
     const updated = updateOrderState(existingOrder.id, nextState, txRecord);

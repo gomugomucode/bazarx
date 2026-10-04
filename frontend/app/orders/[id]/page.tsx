@@ -88,17 +88,18 @@ export default function OrderDetailPage() {
     setActionInProgress(true);
 
     try {
-      // Generate realistic deterministic transaction signature
-      const randomSig = `4Tx${Math.random().toString(36).substring(2, 9)}${Math.random().toString(36).substring(2, 9)}BzxDevnet`;
+      // Clearly label as simulated demo transaction until Anchor devnet deployment
+      const simSig = `simulated_${nextState.toLowerCase()}_${Date.now()}`;
 
       const res = await fetch(`/api/orders/${order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nextState,
-          signature: randomSig,
+          signature: simSig,
           signer: role === 'supplier' ? order.supplierWallet : order.buyerWallet,
           action: actionName,
+          isSimulated: true,
         }),
       });
 
@@ -130,6 +131,16 @@ export default function OrderDetailPage() {
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 font-mono">Blockchain Order #{order.blockchainOrderId}</span>
           <OrderStatusBadge state={order.state} size="md" />
+        </div>
+      </div>
+
+      {/* Demo / Reality Notice Banner */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-amber-900 text-xs leading-relaxed">
+        <span className="px-2 py-0.5 rounded bg-amber-200/80 text-amber-900 font-bold uppercase tracking-wide text-[10px] shrink-0">
+          Demo Mode
+        </span>
+        <div>
+          <span className="font-bold">Devnet Smart Contract Deployment Pending:</span> Order lifecycle state transitions are currently executed and validated via our state-machine simulation layer. Real on-chain Anchor program transactions will activate upon Devnet program deployment.
         </div>
       </div>
 
@@ -402,9 +413,9 @@ export default function OrderDetailPage() {
       {/* Transaction Signatures Audit Trail */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <span>Solana Transaction Ledger &amp; Audit Trail</span>
+          <span>Transaction Ledger &amp; Verification Trail</span>
           <span className="text-[11px] font-mono text-slate-400 font-normal">
-            ({order.transactions?.length || 0} on-chain records)
+            ({order.transactions?.length || 0} records)
           </span>
         </h3>
 
@@ -413,9 +424,9 @@ export default function OrderDetailPage() {
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Trade Stage</th>
-                <th className="px-4 py-3">Smart Contract Action</th>
+                <th className="px-4 py-3">Action</th>
                 <th className="px-4 py-3">Signer Wallet</th>
-                <th className="px-4 py-3">Transaction Signature</th>
+                <th className="px-4 py-3">Execution Status &amp; Signature</th>
                 <th className="px-4 py-3 text-right">Timestamp</th>
               </tr>
             </thead>
@@ -432,16 +443,22 @@ export default function OrderDetailPage() {
                     <td className="px-4 py-3 font-mono text-slate-600">
                       {shortenAddress(tx.signer, 4)}
                     </td>
-                    <td className="px-4 py-3 font-mono">
-                      <a
-                        href={tx.explorerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline flex items-center gap-1"
-                      >
-                        {shortenAddress(tx.signature, 6)}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                    <td className="px-4 py-3">
+                      {tx.isSimulated || !tx.explorerUrl ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono text-[11px]">
+                          Simulated Demo ({tx.signature})
+                        </span>
+                      ) : (
+                        <a
+                          href={tx.explorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline flex items-center gap-1 font-mono"
+                        >
+                          {shortenAddress(tx.signature, 6)}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-slate-400">
                       {new Date(tx.timestamp).toLocaleString([], {

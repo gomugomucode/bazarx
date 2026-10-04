@@ -45,13 +45,22 @@ router.post('/', (req: Request, res: Response) => {
     const orderIdStr = `ord-${orderIdNum}`;
     const now = new Date().toISOString();
 
+    const isSimulated = Boolean(
+      req.body.isSimulated ||
+      !signature ||
+      signature.startsWith('simulated')
+    );
+
     const initialTx: TransactionRecord = {
       step: 'Created',
-      signature: signature || `tx_create_${Date.now()}`,
+      signature: signature || `simulated_create_${Date.now()}`,
       timestamp: now,
       signer: buyerWallet || 'UnknownBuyer',
-      explorerUrl: `https://explorer.solana.com/tx/${signature || 'simulated'}?cluster=devnet`,
+      explorerUrl: isSimulated
+        ? undefined
+        : `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
       action: 'create_order',
+      isSimulated,
     };
 
     const newOrder: Order = {
@@ -91,13 +100,22 @@ router.patch('/:id', (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
+    const isSimulated = Boolean(
+      req.body.isSimulated ||
+      !signature ||
+      signature.startsWith('simulated')
+    );
+
     const txRecord: TransactionRecord = {
       step: nextState,
-      signature: signature || `tx_${nextState.toLowerCase()}_${Date.now()}`,
+      signature: signature || `simulated_${nextState.toLowerCase()}_${Date.now()}`,
       timestamp: new Date().toISOString(),
       signer: signer || 'SignerWallet',
-      explorerUrl: `https://explorer.solana.com/tx/${signature || 'simulated'}?cluster=devnet`,
+      explorerUrl: isSimulated
+        ? undefined
+        : `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
       action: action || `execute_${nextState.toLowerCase()}`,
+      isSimulated,
     };
 
     const updated = store.updateOrderState(existingOrder.id, nextState, txRecord);

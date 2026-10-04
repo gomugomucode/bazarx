@@ -160,20 +160,28 @@ export const Timeline: React.FC<Props> = ({ order }) => {
                   {step.description}
                 </p>
 
-                {/* Explorer Transaction Signature Link if step completed */}
+                {/* Transaction Signature / Execution Status */}
                 {tx && (
                   <div className="mt-2.5 pt-2.5 border-t border-slate-200/60 flex flex-wrap items-center justify-between text-[11px] text-slate-500">
                     <div className="flex items-center gap-1.5 font-mono">
-                      <span className="text-slate-400">Tx:</span>
-                      <a
-                        href={tx.explorerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-700 hover:text-emerald-800 font-semibold hover:underline flex items-center gap-1"
-                      >
-                        {shortenAddress(tx.signature, 6)}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      {tx.isSimulated || !tx.explorerUrl ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          Simulated / Demo ({tx.signature})
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-slate-400">On-Chain Tx:</span>
+                          <a
+                            href={tx.explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-700 hover:text-emerald-800 font-semibold hover:underline flex items-center gap-1"
+                          >
+                            {shortenAddress(tx.signature, 6)}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </>
+                      )}
                     </div>
                     {tx.timestamp && (
                       <span className="text-slate-400">

@@ -88,8 +88,8 @@ export default function ProductDetailPage() {
         orderPdaString = orderPda.toBase58();
       }
 
-      // Generate a realistic transaction signature for the create_order instruction
-      const simulatedTx = `5K${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}SolanaTx`;
+      // Explicitly mark as simulated demo transaction until Devnet Anchor deployment
+      const simulatedTx = `simulated_create_ord_${orderIdNumber}`;
 
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -103,6 +103,7 @@ export default function ProductDetailPage() {
           orderPda: orderPdaString,
           signature: simulatedTx,
           blockchainOrderId: orderIdNumber,
+          isSimulated: true,
         }),
       });
 

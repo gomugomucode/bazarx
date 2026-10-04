@@ -52,13 +52,22 @@ export async function POST(request: Request) {
     const orderIdStr = `ord-${orderIdNum}`;
     const now = new Date().toISOString();
 
+    const isSimulated = Boolean(
+      body.isSimulated ||
+      !signature ||
+      signature.startsWith('simulated')
+    );
+
     const initialTx: TransactionRecord = {
       step: 'Created',
-      signature: signature || `tx_create_${Date.now()}`,
+      signature: signature || `simulated_create_${Date.now()}`,
       timestamp: now,
       signer: buyerWallet || 'UnknownBuyer',
-      explorerUrl: `https://explorer.solana.com/tx/${signature || 'simulated'}?cluster=devnet`,
+      explorerUrl: isSimulated
+        ? undefined
+        : `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
       action: 'create_order',
+      isSimulated,
     };
 
     const newOrder: Order = {

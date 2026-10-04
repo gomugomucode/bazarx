@@ -29,8 +29,9 @@ export interface TransactionRecord {
   signature: string;
   timestamp: string;
   signer: string;
-  explorerUrl: string;
+  explorerUrl?: string;
   action: string;
+  isSimulated?: boolean;
 }
 
 export interface Order {
