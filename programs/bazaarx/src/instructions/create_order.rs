@@ -14,6 +14,17 @@ pub struct CreateOrder<'info> {
     )]
     pub config: Account<'info, Config>,
 
+    #[cfg(feature = "idl-build")]
+    #[account(
+        init,
+        payer = buyer,
+        space = Order::LEN,
+        seeds = [Order::SEED_PREFIX, &order_id.to_le_bytes()],
+        bump
+    )]
+    pub order: Account<'info, Order>,
+
+    #[cfg(not(feature = "idl-build"))]
     #[account(
         init,
         payer = buyer,
