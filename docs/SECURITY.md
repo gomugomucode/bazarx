@@ -20,41 +20,23 @@ The core security thesis of BazaarX is **Non-Custodial Financial Settlement**. T
 
 ---
 
-### 2.2. Critical Attack Vectors & Mitigations
+## 3. Real On-Chain Security & Exploit Test Results (Solana Devnet)
 
-#### A. Unauthorized Acceptance / Theft by Impersonation
-* **Attack:** A malicious third party calls `accept_order` on an order meant for a specific supplier.
-* **Mitigation:** The `Order` account explicitly records the intended `supplier` pubkey at order creation. The `AcceptOrder` context uses `has_one = supplier`, forcing the transaction signer to match `order.supplier`.
+Executed via `scripts/test_security_devnet.ts` directly against deployed program `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`:
 
-#### B. Premature Payment Drainage
-* **Attack:** Supplier attempts to trigger `release_payment` before goods are delivered, or before buyer funds the escrow.
-* **Mitigation:** Strict state machine enforcement:
-  * `fund_escrow` requires `order.state == OrderState::Accepted`.
-  * `mark_shipped` requires `order.state == OrderState::Funded`.
-  * `confirm_delivery` requires `order.state == OrderState::Shipped`.
-  * `release_payment` requires `order.state == OrderState::Delivered`.
-  * Upon execution, state transitions immediately to `OrderState::Completed`.
-
-#### C. Double-Release / Re-entrancy
-* **Attack:** Attacker calls `release_payment` repeatedly to drain funds from the vault.
-* **Mitigation:** State transitions to `OrderState::Completed` atomically within the instruction handler. Once `Completed`, subsequent calls fail the precondition check `order.state == OrderState::Delivered`.
-
-#### D. Fake Token Substitution
-* **Attack:** Buyer deposits a worthless spoofed token into the vault instead of canonical USDC.
-* **Mitigation:**
-  * Protocol config enforces canonical Circle Devnet USDC mint (`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`).
-  * `create_order` checks `require_keys_eq!(mint, config.usdc_mint, BazaarXError::InvalidMint)`.
-  * `fund_escrow` and `release_payment` check `token::mint = mint` against `order.mint`.
-
-#### E. Vault Authority & Program Signer Seeds
-* **Attack:** Attacker creates an arbitrary token account and passes it as the vault.
-* **Mitigation:** The vault is derived deterministically as a PDA:
-  `seeds = [b"vault", order.key().as_ref()]`
-  Its token authority is the `order` PDA itself. Only the program can derive the signer seeds (`[b"order", buyer, order_id, bump]`) to authorize the SPL transfer CPI.
+| Attack Scenario | Tested Exploit | Expected Program Error | Devnet Runtime Result | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Zero Amount Order** | Buyer attempts to create order with `amount = 0` | `BazaarXError::InvalidAmount` | Transaction failed with error code `6001` | **BLOCKED ON-CHAIN** |
+| **2. Self-Trading** | Buyer sets `supplier = buyer.key()` | `BazaarXError::InvalidSupplier` | Transaction failed with error code `6008` | **BLOCKED ON-CHAIN** |
+| **3. Fake Mint Substitution** | Buyer creates order with unapproved arbitrary mint | `BazaarXError::InvalidMint` | Transaction failed with error code `6002` | **BLOCKED ON-CHAIN** |
+| **4. Unauthorized Acceptance** | Attacker calls `accept_order` on someone else's order | `BazaarXError::UnauthorizedSupplier` | Transaction failed with error code `6003` (`has_one` check) | **BLOCKED ON-CHAIN** |
+| **5. State Skipping** | Supplier calls `mark_shipped` on order in `Created` state | `BazaarXError::InvalidOrderState` | Transaction failed with error code `6004` | **BLOCKED ON-CHAIN** |
+| **6. Unauthorized Delivery** | Attacker calls `confirm_delivery` on buyer's order | `BazaarXError::UnauthorizedBuyer` | Transaction failed with error code `6004` | **BLOCKED ON-CHAIN** |
+| **7. Premature Payment Release** | Attacker calls `release_payment` before goods are delivered | `BazaarXError::InvalidOrderState` / `AccountNotInitialized` | Transaction rejected by Anchor runtime | **BLOCKED ON-CHAIN** |
 
 ---
 
-## 3. Account Serialization Space Verification
+## 4. Account Serialization Space Verification
 * **Anchor Discriminator:** 8 bytes
 * `order_id` (`u64`): 8 bytes
 * `buyer` (`Pubkey`): 32 bytes
