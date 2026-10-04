@@ -49,14 +49,20 @@ function UnifiedDashboardContent() {
           if (data.success && data.profile) {
             setProfile(data.profile);
 
-            // Determine initial active role
+            // Determine initial active role: strictly enforce that requested role exists in profile.roles
             const roleParam = searchParams.get('role')?.toUpperCase();
-            if (roleParam === 'BUYER' || roleParam === 'SUPPLIER') {
-              setActiveRole(roleParam);
+            if (
+              roleParam &&
+              (roleParam === 'BUYER' || roleParam === 'SUPPLIER') &&
+              data.profile.roles.includes(roleParam as UserRole)
+            ) {
+              setActiveRole(roleParam as 'BUYER' | 'SUPPLIER');
             } else if (data.profile.roles.includes('BUYER')) {
               setActiveRole('BUYER');
             } else if (data.profile.roles.includes('SUPPLIER')) {
               setActiveRole('SUPPLIER');
+            } else {
+              setActiveRole('BUYER');
             }
           } else {
             setProfile(null);
@@ -119,6 +125,12 @@ function UnifiedDashboardContent() {
     }
   };
 
+  const handleRoleChange = (newRole: 'BUYER' | 'SUPPLIER') => {
+    if (profile?.roles?.includes(newRole)) {
+      setActiveRole(newRole);
+    }
+  };
+
   // State A: Disconnected Wallet
   if (!connected || !publicKey) {
     return (
@@ -169,7 +181,7 @@ function UnifiedDashboardContent() {
         publicKey={publicKey}
         sol={sol}
         usdc={usdc}
-        onRoleChange={setActiveRole}
+        onRoleChange={handleRoleChange}
       />
 
       {/* Role-Specific Metric Summary Cards */}

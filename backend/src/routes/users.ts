@@ -37,7 +37,7 @@ router.get('/me', (req: Request, res: Response) => {
   return res.json({ success: true, profile });
 });
 
-// POST /api/users/profile
+// POST /api/users/profile (Onboard new business profile)
 router.post('/profile', (req: Request, res: Response) => {
   try {
     const { wallet, businessName, role, roles } = req.body;
@@ -58,6 +58,15 @@ router.post('/profile', (req: Request, res: Response) => {
     const cleanWallet = wallet.trim();
     const cleanBusinessName = businessName.trim();
 
+    // Security: Check if profile already exists to prevent profile hijacking/unauthorized overwrites
+    const existing = store.getUserProfile(cleanWallet);
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: 'A business profile already exists for this wallet address. Existing profiles cannot be overwritten without authenticated wallet ownership.',
+      });
+    }
+
     // Security: Public registration only allows BUYER and SUPPLIER. ADMIN cannot be self-assigned.
     let resolvedRoles: UserRole[] = [];
     const candidateRoles = Array.isArray(roles) ? roles : role ? [role] : [];
@@ -74,17 +83,11 @@ router.post('/profile', (req: Request, res: Response) => {
       resolvedRoles = ['BUYER'];
     }
 
-    const existing = store.getUserProfile(cleanWallet);
-    // If the account was previously an ADMIN in seed data, preserve their ADMIN privilege
-    if (existing?.roles?.includes('ADMIN') && !resolvedRoles.includes('ADMIN')) {
-      resolvedRoles.unshift('ADMIN');
-    }
-
     const newProfile: UserProfile = {
       wallet: cleanWallet,
       businessName: cleanBusinessName,
       roles: resolvedRoles,
-      createdAt: existing?.createdAt || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
 
     const saved = store.saveUserProfile(newProfile);

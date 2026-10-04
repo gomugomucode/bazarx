@@ -104,9 +104,6 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(sanitizedPayload),
     });
-    if (!res.ok) {
-      throw new Error(`Backend returned status ${res.status}`);
-    }
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err: any) {
@@ -114,11 +111,21 @@ export async function POST(request: Request) {
     try {
       const { saveUserProfile, getUserProfile } = await import('@/lib/store');
       const existing = getUserProfile(cleanWallet);
+      if (existing) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'A business profile already exists for this wallet address. Existing profiles cannot be overwritten without authenticated wallet ownership.',
+          },
+          { status: 409 }
+        );
+      }
+
       const saved = saveUserProfile({
         wallet: cleanWallet,
         businessName: cleanBusinessName,
-        roles: existing?.roles?.includes('ADMIN') ? ['ADMIN', ...resolvedRoles] : resolvedRoles,
-        createdAt: existing?.createdAt || new Date().toISOString(),
+        roles: resolvedRoles,
+        createdAt: new Date().toISOString(),
       });
       return NextResponse.json({ success: true, profile: saved });
     } catch (e: any) {
