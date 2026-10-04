@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { store } from '../store';
-import { UserProfile, UserRole } from '../types';
+import { store, hashPassword } from '../store';
+import { UserAccount, UserProfile, UserRole } from '../types';
 
 const router = Router();
 const SOLANA_PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -37,7 +37,7 @@ router.get('/me', (req: Request, res: Response) => {
   return res.json({ success: true, profile });
 });
 
-// POST /api/users/profile (Onboard new business profile)
+// POST /api/users/profile (Onboard new business profile via wallet)
 router.post('/profile', (req: Request, res: Response) => {
   try {
     const { wallet, businessName, role, roles } = req.body;
@@ -83,14 +83,24 @@ router.post('/profile', (req: Request, res: Response) => {
       resolvedRoles = ['BUYER'];
     }
 
-    const newProfile: UserProfile = {
-      wallet: cleanWallet,
+    const now = new Date().toISOString();
+    const newAccount: UserAccount = {
+      id: `usr_${Date.now()}_${cleanWallet.slice(0, 6)}`,
+      email: `${cleanWallet.slice(0, 8).toLowerCase()}@wallet.bazarx.internal`,
+      passwordHash: hashPassword('wallet_onboarded_' + cleanWallet),
+      fullName: cleanBusinessName,
       businessName: cleanBusinessName,
+      phone: '+977-9800000000',
+      citizenshipNumber: '00-00-00-00000',
+      role: resolvedRoles[0],
       roles: resolvedRoles,
-      createdAt: new Date().toISOString(),
+      verificationStatus: 'PENDING',
+      wallet: cleanWallet,
+      createdAt: now,
+      updatedAt: now,
     };
 
-    const saved = store.saveUserProfile(newProfile);
+    const saved = store.createUser(newAccount);
     return res.json({ success: true, profile: saved });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });

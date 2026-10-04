@@ -3,6 +3,7 @@ import cors from 'cors';
 import productsRouter from './routes/products';
 import ordersRouter from './routes/orders';
 import usersRouter from './routes/users';
+import authRouter from './routes/auth';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,10 +36,11 @@ app.get('/', (req: Request, res: Response) => {
   res.json({
     name: 'BazaarX Programmable B2B Settlement Backend',
     status: 'online',
-    version: '1.0.0',
+    version: '2.0.0',
     network: 'Solana Devnet',
     endpoints: {
       health: '/health',
+      auth: '/api/auth',
       products: '/api/products',
       orders: '/api/orders',
       users: '/api/users',
@@ -53,7 +55,7 @@ const healthHandler = (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     service: 'BazaarX Settlement Backend',
-    version: '1.0.0',
+    version: '2.0.0',
     network: 'Solana Devnet',
   });
 };
@@ -61,6 +63,7 @@ app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
 // Mount API routes
+app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/users', usersRouter);

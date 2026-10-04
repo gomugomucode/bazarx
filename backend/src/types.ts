@@ -26,7 +26,7 @@ export interface Product {
 
 export interface TransactionRecord {
   step: OrderState;
-  signature: string;
+  signature?: string;
   timestamp: string;
   signer: string;
   explorerUrl?: string;
@@ -44,8 +44,10 @@ export interface Order {
   amountUsdc: number;
   buyerWallet: string;
   buyerName: string;
+  buyerEmail?: string;
   supplierWallet: string;
   supplierName: string;
+  supplierEmail?: string;
   shippingAddress: string;
   state: OrderState;
   orderPda: string;
@@ -60,10 +62,45 @@ export interface Order {
 }
 
 export type UserRole = 'BUYER' | 'SUPPLIER' | 'ADMIN';
+export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface UserAccount {
+  id: string;
+  email: string;
+  passwordHash: string;
+  fullName: string;
+  businessName: string;
+  phone: string;
+  citizenshipNumber: string; // Private - never exposed publicly or on-chain
+  panNumber?: string; // Private - never exposed publicly or on-chain
+  role: UserRole;
+  roles: UserRole[];
+  verificationStatus: VerificationStatus;
+  verificationNotes?: string;
+  wallet?: string; // Linked settlement wallet address
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface UserProfile {
-  wallet: string;
+  id: string;
+  email: string;
+  fullName: string;
   businessName: string;
+  phone: string;
+  role: UserRole;
   roles: UserRole[];
+  verificationStatus: VerificationStatus;
+  verificationNotes?: string;
+  wallet?: string;
+  maskedCitizenship?: string;
+  maskedPan?: string;
   createdAt: string;
+}
+
+export interface SessionRecord {
+  token: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
 }

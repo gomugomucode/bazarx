@@ -1,29 +1,103 @@
 import fs from 'fs';
 import path from 'path';
-import { Product, Order, OrderState, TransactionRecord, UserProfile } from './types';
+import crypto from 'crypto';
+import {
+  Product,
+  Order,
+  OrderState,
+  TransactionRecord,
+  UserAccount,
+  UserProfile,
+  SessionRecord,
+  UserRole,
+} from './types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS } from './mockData';
 
 const ORDERS_FILE = path.join(process.cwd(), '.bazaarx_orders.json');
 const USERS_FILE = path.join(process.cwd(), '.bazaarx_users.json');
+const SESSIONS_FILE = path.join(process.cwd(), '.bazaarx_sessions.json');
 
-export const INITIAL_PROFILES: UserProfile[] = [
+// Password hashing utility using Node.js crypto
+export function hashPassword(password: string): string {
+  const salt = 'bazarx_salt_devnet_2026';
+  return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+}
+
+export function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
+
+// Convert private UserAccount to safe UserProfile (masking sensitive government credentials)
+export function sanitizeUser(user: UserAccount): UserProfile {
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    businessName: user.businessName,
+    phone: user.phone,
+    role: user.role,
+    roles: user.roles,
+    verificationStatus: user.verificationStatus,
+    verificationNotes: user.verificationNotes,
+    wallet: user.wallet,
+    maskedCitizenship: user.citizenshipNumber
+      ? `•••••••${user.citizenshipNumber.slice(-4)}`
+      : undefined,
+    maskedPan: user.panNumber
+      ? `•••••••${user.panNumber.slice(-4)}`
+      : undefined,
+    createdAt: user.createdAt,
+  };
+}
+
+export const INITIAL_ACCOUNTS: UserAccount[] = [
   {
-    wallet: '6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K',
+    id: 'usr_buyer_01',
+    email: 'buyer@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'Ram Shrestha',
     businessName: 'Kathmandu Valley Wholesale Buyer',
+    phone: '+977-9841234567',
+    citizenshipNumber: '27-01-72-12345',
+    panNumber: '601234567',
+    role: 'BUYER',
     roles: ['BUYER'],
+    verificationStatus: 'VERIFIED',
+    wallet: '6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K',
     createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
   },
   {
-    wallet: '8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP',
+    id: 'usr_supplier_01',
+    email: 'supplier@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'Binod Chaudhary',
     businessName: 'Terai Edible Oils & Food Industries',
+    phone: '+977-9851234567',
+    citizenshipNumber: '14-01-68-98765',
+    panNumber: '300987654',
+    role: 'SUPPLIER',
     roles: ['SUPPLIER'],
+    verificationStatus: 'VERIFIED',
+    wallet: '8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP',
     createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
   },
   {
-    wallet: 'HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV',
+    id: 'usr_admin_01',
+    email: 'admin@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'BazaarX Compliance Officer',
     businessName: 'BazaarX Protocol Administrator',
+    phone: '+977-9801234567',
+    citizenshipNumber: '01-01-55-00001',
+    panNumber: '100000001',
+    role: 'ADMIN',
     roles: ['ADMIN', 'BUYER', 'SUPPLIER'],
+    verificationStatus: 'VERIFIED',
+    wallet: 'HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV',
     createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
   },
 ];
 
@@ -58,33 +132,127 @@ class Store {
     writeJsonFile(ORDERS_FILE, orders);
   }
 
-  private getUsersFromDisk(): UserProfile[] {
-    return readJsonFile<UserProfile[]>(USERS_FILE, INITIAL_PROFILES);
+  private getUsersFromDisk(): UserAccount[] {
+    const raw = readJsonFile<any[]>(USERS_FILE, INITIAL_ACCOUNTS);
+    // Migrate legacy profile objects if necessary
+    return raw.map((u, idx) => {
+      if (!u.id) {
+        return {
+          id: `usr_legacy_${idx}`,
+          email: u.email || `${u.businessName?.toLowerCase().replace(/\s+/g, '')}@bazarx.com`,
+          passwordHash: u.passwordHash || hashPassword('password123'),
+          fullName: u.fullName || u.businessName || 'Business Owner',
+          businessName: u.businessName || 'Enterprise Trader',
+          phone: u.phone || '+977-9800000000',
+          citizenshipNumber: u.citizenshipNumber || '00-00-00-00000',
+          panNumber: u.panNumber,
+          role: u.role || (u.roles && u.roles[0]) || 'BUYER',
+          roles: u.roles || ['BUYER'],
+          verificationStatus: u.verificationStatus || 'VERIFIED',
+          wallet: u.wallet,
+          createdAt: u.createdAt || new Date().toISOString(),
+          updatedAt: u.updatedAt || new Date().toISOString(),
+        };
+      }
+      return u as UserAccount;
+    });
   }
 
-  private saveUsersToDisk(users: UserProfile[]): void {
+  private saveUsersToDisk(users: UserAccount[]): void {
     writeJsonFile(USERS_FILE, users);
   }
 
-  getUserProfile(wallet: string): UserProfile | undefined {
-    const users = this.getUsersFromDisk();
-    return users.find((u) => u.wallet.toLowerCase() === wallet.toLowerCase());
+  private getSessionsFromDisk(): SessionRecord[] {
+    return readJsonFile<SessionRecord[]>(SESSIONS_FILE, []);
   }
 
-  saveUserProfile(profile: UserProfile): UserProfile {
-    const users = this.getUsersFromDisk();
-    const existingIndex = users.findIndex(
-      (u) => u.wallet.toLowerCase() === profile.wallet.toLowerCase()
-    );
-    if (existingIndex !== -1) {
-      users[existingIndex] = { ...users[existingIndex], ...profile };
-    } else {
-      users.push(profile);
+  private saveSessionsToDisk(sessions: SessionRecord[]): void {
+    writeJsonFile(SESSIONS_FILE, sessions);
+  }
+
+  // --- Auth & Sessions ---
+  createSession(userId: string): SessionRecord {
+    const sessions = this.getSessionsFromDisk();
+    const token = crypto.randomBytes(32).toString('hex');
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+
+    const session: SessionRecord = {
+      token,
+      userId,
+      createdAt: now.toISOString(),
+      expiresAt,
+    };
+
+    sessions.push(session);
+    this.saveSessionsToDisk(sessions);
+    return session;
+  }
+
+  getSession(token: string): SessionRecord | undefined {
+    const sessions = this.getSessionsFromDisk();
+    const session = sessions.find((s) => s.token === token);
+    if (!session) return undefined;
+
+    // Check expiration
+    if (new Date(session.expiresAt).getTime() < Date.now()) {
+      this.deleteSession(token);
+      return undefined;
     }
-    this.saveUsersToDisk(users);
-    return profile;
+    return session;
   }
 
+  deleteSession(token: string): void {
+    let sessions = this.getSessionsFromDisk();
+    sessions = sessions.filter((s) => s.token !== token);
+    this.saveSessionsToDisk(sessions);
+  }
+
+  // --- User Account Management ---
+  getUserById(id: string): UserAccount | undefined {
+    const users = this.getUsersFromDisk();
+    return users.find((u) => u.id === id);
+  }
+
+  getUserByEmail(email: string): UserAccount | undefined {
+    const users = this.getUsersFromDisk();
+    return users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  }
+
+  getUserByWallet(wallet: string): UserAccount | undefined {
+    const users = this.getUsersFromDisk();
+    const target = wallet.trim().toLowerCase();
+    return users.find((u) => u.wallet && u.wallet.toLowerCase() === target);
+  }
+
+  // Backward compatibility lookup
+  getUserProfile(wallet: string): UserProfile | undefined {
+    const user = this.getUserByWallet(wallet);
+    return user ? sanitizeUser(user) : undefined;
+  }
+
+  createUser(account: UserAccount): UserProfile {
+    const users = this.getUsersFromDisk();
+    users.push(account);
+    this.saveUsersToDisk(users);
+    return sanitizeUser(account);
+  }
+
+  updateUser(id: string, updates: Partial<UserAccount>): UserProfile | null {
+    const users = this.getUsersFromDisk();
+    const idx = users.findIndex((u) => u.id === id);
+    if (idx === -1) return null;
+
+    users[idx] = {
+      ...users[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveUsersToDisk(users);
+    return sanitizeUser(users[idx]);
+  }
+
+  // --- Products ---
   getProducts(category?: string | null): Product[] {
     if (category && category !== 'All') {
       return this.products.filter((p) => p.category === category);
@@ -96,6 +264,7 @@ class Store {
     return this.products.find((p) => p.id === id);
   }
 
+  // --- Orders ---
   getOrders(wallet?: string | null, role?: string | null): Order[] {
     const orders = this.getOrdersFromDisk();
     if (wallet) {
