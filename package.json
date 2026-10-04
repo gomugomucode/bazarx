@@ -4,6 +4,9 @@
   "description": "Nepal's programmable B2B wholesale settlement marketplace on Solana",
   "license": "Apache-2.0",
   "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
@@ -11,17 +14,32 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.8",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/wallet-adapter-react": "^0.15.35",
+    "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.95.3",
-    "bn.js": "^5.2.1"
+    "bn.js": "^5.2.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.453.0",
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.5",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.0",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.19",
     "chai": "^4.3.4",
     "mocha": "^10.2.0",
+    "postcss": "^8.4.38",
     "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.1",
     "ts-mocha": "^10.0.0",
     "typescript": "^5.3.3"
   }

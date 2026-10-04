@@ -38,4 +38,28 @@ pub mod bazaarx {
     pub fn accept_order(ctx: Context<AcceptOrder>) -> Result<()> {
         instructions::accept_order::handler(ctx)
     }
+
+    /// Buyer locks wholesale funds into the program-controlled vault PDA.
+    /// Transitions state from Accepted to Funded.
+    pub fn fund_escrow(ctx: Context<FundEscrow>) -> Result<()> {
+        instructions::fund_escrow::handler(ctx)
+    }
+
+    /// Designated supplier marks the consignment dispatched.
+    /// Transitions state from Funded to Shipped.
+    pub fn mark_shipped(ctx: Context<MarkShipped>) -> Result<()> {
+        instructions::mark_shipped::handler(ctx)
+    }
+
+    /// Buyer inspects delivered goods and confirms delivery.
+    /// Transitions state from Shipped to Delivered.
+    pub fn confirm_delivery(ctx: Context<ConfirmDelivery>) -> Result<()> {
+        instructions::confirm_delivery::handler(ctx)
+    }
+
+    /// Releases escrowed USDC directly from the vault PDA to supplier.
+    /// Transitions state from Delivered to Completed.
+    pub fn release_payment(ctx: Context<ReleasePayment>) -> Result<()> {
+        instructions::release_payment::handler(ctx)
+    }
 }

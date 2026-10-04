@@ -14,6 +14,12 @@ pub enum BazaarXError {
     #[msg("Only the designated supplier can accept this order")]
     UnauthorizedSupplier,
 
+    #[msg("Only the designated buyer can perform this action")]
+    UnauthorizedBuyer,
+
+    #[msg("Token account does not match designated owner or mint")]
+    InvalidTokenAccount,
+
     #[msg("Order state transition is invalid for this instruction")]
     InvalidOrderState,
 

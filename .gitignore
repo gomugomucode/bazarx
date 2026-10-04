@@ -2,7 +2,11 @@
 .DS_Store
 target
 node_modules
+.next
 dist
+*.tsbuildinfo
+*.db
+*.db-journal
 .env
 .env.*
 **/*.key

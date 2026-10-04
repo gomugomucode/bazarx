@@ -1,0 +1,64 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique
+  role          String   // "buyer" | "supplier" | "admin"
+  businessName  String?
+  location      String?
+  createdAt     DateTime @default(now())
+}
+
+model Product {
+  id               String   @id @default(uuid())
+  supplierWallet   String
+  supplierName     String
+  supplierLocation String
+  name             String
+  category         String
+  description      String
+  priceUsdc        Float
+  priceNpr         Float
+  unit             String
+  minOrder         Int
+  stock            Int
+  imageUrl         String
+  createdAt        DateTime @default(now())
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  blockchainOrderId Int           @unique
+  buyerWallet       String
+  supplierWallet    String
+  productId         String
+  productName       String
+  quantity          Int
+  unit              String
+  amountUsdc        Float
+  status            String        // "Created" | "Accepted" | "Funded" | "Shipped" | "Delivered" | "Completed" | "Disputed" | "Refunded"
+  orderPda          String
+  mint              String
+  shippingAddress   String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  transactions      Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  step        String
+  signature   String
+  signer      String
+  explorerUrl String
+  createdAt   DateTime @default(now())
+}
