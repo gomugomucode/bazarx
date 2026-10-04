@@ -75,7 +75,14 @@ pub fn handler(
     order.state = OrderState::Created;
     order.created_at = clock.unix_timestamp;
     order.accepted_at = 0;
-    order.bump = ctx.bumps.order;
+    #[cfg(feature = "idl-build")]
+    {
+        order.bump = 0;
+    }
+    #[cfg(not(feature = "idl-build"))]
+    {
+        order.bump = ctx.bumps.order;
+    }
 
     Ok(())
 }
