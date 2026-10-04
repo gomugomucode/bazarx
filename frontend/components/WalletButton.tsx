@@ -15,7 +15,7 @@ import {
   RefreshCw,
   Coins,
   ShieldCheck,
-  AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
 
 export const WalletButton: React.FC = () => {
@@ -49,11 +49,25 @@ export const WalletButton: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!publicKey) return;
-    navigator.clipboard.writeText(publicKey.toBase58());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(publicKey.toBase58());
+      } else {
+        // Fallback for non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = publicKey.toBase58();
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Failed to copy to clipboard:', err);
+    }
   };
 
   const handleDisconnect = async () => {
@@ -61,35 +75,35 @@ export const WalletButton: React.FC = () => {
     await disconnect();
   };
 
-  // State 1: Connecting...
-  if (connecting) {
-    return (
-      <button
-        disabled
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 font-semibold text-xs sm:text-sm cursor-not-allowed select-none shadow-sm"
-        title="Connecting to Solana wallet..."
-      >
-        <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-        <span>Connecting...</span>
-      </button>
-    );
-  }
-
-  // State 2: Disconnected -> [ Connect Wallet ]
+  // STATE A: Disconnected -> [ Connect Wallet ]
   if (!connected || !publicKey) {
+    if (connecting) {
+      // STATE B: Connecting...
+      return (
+        <button
+          disabled
+          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 font-semibold text-xs sm:text-sm cursor-not-allowed select-none shadow-sm transition-all"
+          title="Connecting to Solana wallet..."
+        >
+          <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+          <span>Connecting...</span>
+        </button>
+      );
+    }
+
     return (
       <button
         onClick={() => setVisible(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98]"
+        className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98] shrink-0"
         title="Connect your Solana wallet for on-chain settlement"
       >
-        <Wallet className="w-4 h-4 text-emerald-400" />
+        <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
         <span>Connect Wallet</span>
       </button>
     );
   }
 
-  // State 3: Connected -> B2B Account Pill & Dropdown
+  // STATE C: Connected -> Shortened address, SOL balance, Devnet status
   const addressStr = publicKey.toBase58();
   const truncatedAddress = shortenAddress(addressStr, 4);
 
@@ -112,7 +126,7 @@ export const WalletButton: React.FC = () => {
       {/* Account Pill Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all text-xs font-medium ${
+        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-medium max-w-[280px] sm:max-w-none ${
           isOpen
             ? 'bg-slate-100 border-slate-400 shadow-inner'
             : 'bg-white hover:bg-slate-50 border-slate-300 shadow-sm'
@@ -120,55 +134,60 @@ export const WalletButton: React.FC = () => {
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        {/* Balance Display */}
+        {/* SOL Balance */}
         <span className="font-mono text-slate-700 hidden sm:inline-block font-semibold">
           {formattedSol}
         </span>
 
         <span className="hidden sm:inline-block text-slate-300">|</span>
 
-        {/* Truncated Address */}
-        <div className="flex items-center gap-1.5 font-mono text-slate-900 font-bold">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        {/* Shortened Address */}
+        <div className="flex items-center gap-1.5 font-mono text-slate-900 font-bold truncate">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           <span>{truncatedAddress}</span>
         </div>
 
+        {/* Devnet Tag */}
+        <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 hidden md:inline-block">
+          DEVNET
+        </span>
+
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${
+          className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${
             isOpen ? 'rotate-180 text-slate-700' : ''
           }`}
         />
       </button>
 
-      {/* Account Dropdown Menu */}
+      {/* Account Dropdown Menu (Guaranteed to fit 375px screens) */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
-          {/* Header: Network & Wallet Provider */}
-          <div className="p-4 bg-slate-50/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-88 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
+          {/* Section 1: WALLET & NETWORK */}
+          <div className="p-4 bg-slate-50/80 flex items-center justify-between">
+            <div className="flex items-center gap-2 truncate pr-2">
               {wallet?.adapter.icon ? (
                 <img
                   src={wallet.adapter.icon}
                   alt={wallet.adapter.name}
-                  className="w-5 h-5 rounded-full"
+                  className="w-5 h-5 rounded-full shrink-0"
                 />
               ) : (
-                <Wallet className="w-4 h-4 text-slate-700" />
+                <Wallet className="w-4 h-4 text-slate-700 shrink-0" />
               )}
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-xs font-bold text-slate-800 truncate">
                 {wallet?.adapter.name || 'Solana Wallet'}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Solana Devnet
+              SOLANA DEVNET
             </div>
           </div>
 
-          {/* Address & Copy / Explorer Actions */}
+          {/* Section 2: CONNECTED ACCOUNT & ACTIONS */}
           <div className="p-4 space-y-2">
-            <span className="text-[11px] font-medium text-slate-400 block uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
               Connected Account
             </span>
             <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-2.5">
@@ -176,25 +195,31 @@ export const WalletButton: React.FC = () => {
                 {shortenAddress(addressStr, 6)}
               </span>
 
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={handleCopy}
-                  className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 rounded-lg transition-colors text-[11px] font-medium"
                   title="Copy full public key"
                 >
                   {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 font-bold">Copied!</span>
+                    </>
                   ) : (
-                    <Copy className="w-3.5 h-3.5" />
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy</span>
+                    </>
                   )}
                 </button>
 
                 <a
                   href={getExplorerAccountUrl(addressStr, 'devnet')}
                   target="_blank"
-                  rel="noreferrer"
-                  className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg transition-colors"
-                  title="View on Solana Explorer"
+                  rel="noopener noreferrer"
+                  className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-lg transition-colors"
+                  title="View account on Solana Explorer (Devnet)"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -202,17 +227,17 @@ export const WalletButton: React.FC = () => {
             </div>
           </div>
 
-          {/* Real Balances Section */}
+          {/* Section 3: BALANCES */}
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                <Coins className="w-3 h-3 text-slate-400" /> Devnet Assets
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <Coins className="w-3 h-3 text-slate-400" /> Balances (Solana Devnet)
               </span>
               <button
                 onClick={() => refresh()}
                 disabled={balanceLoading}
                 className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors disabled:opacity-50"
-                title="Refresh balances"
+                title="Refresh live on-chain balances"
               >
                 <RefreshCw
                   className={`w-3 h-3 ${balanceLoading ? 'animate-spin text-emerald-600' : ''}`}
@@ -228,7 +253,7 @@ export const WalletButton: React.FC = () => {
                 <span className="font-mono font-bold text-slate-900 text-sm block mt-0.5 truncate">
                   {formattedSol}
                 </span>
-                <span className="text-[10px] text-slate-400">Gas & Fees</span>
+                <span className="text-[10px] text-slate-400">Transaction Gas</span>
               </div>
 
               {/* USDC Balance */}
@@ -241,32 +266,33 @@ export const WalletButton: React.FC = () => {
               </div>
             </div>
 
-            {/* Hint if USDC is 0 */}
+            {/* Faucet Guidance if USDC is 0 (informational, not a purchase option) */}
             {usdc === 0 && (
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-1">
-                <div className="flex items-center gap-1 font-semibold text-amber-950">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Buyer USDC Faucet</span>
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] space-y-1">
+                <div className="flex items-center gap-1 font-semibold text-slate-700">
+                  <HelpCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>Need Devnet USDC?</span>
                 </div>
-                <p className="text-[10px] text-amber-800 leading-snug">
-                  Need Devnet USDC to test funding wholesale escrow?
+                <p className="text-[10px] text-slate-500 leading-snug">
+                  To test wholesale escrow funding, request test tokens for mint{' '}
+                  <code className="font-mono font-semibold text-slate-700">4zMMC...ncDU</code>:
                 </p>
                 <a
                   href="https://faucet.circle.com"
                   target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-900 underline hover:text-amber-700 pt-0.5"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline pt-0.5"
                 >
-                  Request Circle Test USDC <ExternalLink className="w-2.5 h-2.5" />
+                  Request Devnet USDC from Circle Faucet <ExternalLink className="w-2.5 h-2.5" />
                 </a>
               </div>
             )}
           </div>
 
-          {/* Security & Disconnect Footer */}
+          {/* Section 4: SECURITY & DISCONNECT */}
           <div className="p-3 bg-slate-50/80 flex items-center justify-between text-xs">
             <span className="text-[11px] text-slate-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Non-custodial
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Non-custodial settlement
             </span>
 
             <button
