@@ -4,7 +4,7 @@
   "description": "BazaarX B2B settlement backend API service and database layer",
   "main": "src/server.ts",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -21,6 +21,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.0",
+    "nodemon": "^3.1.14",
     "tsx": "^4.19.1",
     "typescript": "^5.3.3"
   }

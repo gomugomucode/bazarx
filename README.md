@@ -1,250 +1,145 @@
 # BazaarX
 
-> **Nepal's programmable B2B wholesale settlement marketplace on Solana.**
+> **Nepal's programmable B2B wholesale settlement marketplace on Solana Devnet.**
 
-BazaarX facilitates secure on-chain wholesale trade between buyers (retailers, distributors) and suppliers. In traditional trade networks, counterparty risk, delayed settlements, and payment defaults are major friction points. BazaarX solves this by anchoring trade agreements and financial custody on Solana.
-
----
-
-## Core Financial Principle: Non-Custodial Security
-
-**The BazaarX backend NEVER has custody of buyer or supplier funds.**
-
-* **Off-Chain Backend Role**: Handles product catalog discovery, search indexing, image hosting, business profiles, and communication.
-* **On-Chain Solana Program Role**: Holds absolute financial authority, controls escrow vaults, validates trade state transitions, and releases or refunds capital according to immutable rules.
+BazaarX facilitates trust-minimized on-chain wholesale trade between commodity buyers (retailers, distributors, agro-processors) and suppliers (millers, farmers, wholesale producers). By combining an off-chain discovery marketplace with non-custodial Solana escrow smart contracts, BazaarX eliminates counterparty default risk without requiring central exchange custody.
 
 ---
 
-## Day-1 Architecture & Scope
+## ⚡ Live Protocol Parameters (Solana Devnet)
 
-Day 1 focuses entirely on establishing the immutable on-chain trade agreement foundation:
+* **Program ID:** [`BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`](https://explorer.solana.com/address/BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN?cluster=devnet)
+* **Program Deployment Tx:** [`27TpVCBYyqAuJqNs...`](https://explorer.solana.com/tx/27TpVCBYyqAuJqNsEp7xfcR31ZLu4JaRUk8ZWogv2wpMHjBNJQqWRbzpmfZoa89Kxnv7LGLi1CvPNp7b7iTV9Ey4?cluster=devnet)
+* **Admin / Upgrade Authority:** `HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV`
+* **Protocol Config PDA:** `DscHbC3D6FXeaRZ29WA8qeM61ex8dQUMCsLxpqxVVDDX` (Bump: 255)
+* **Canonical Settlement Token:** `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` (Official Circle Devnet USDC)
+* **Live Order #80024 PDA:** [`GivpLzmmEH5M2WVbWqbjGRsSSSZxTvcGLFoC6rvwWFUm`](https://explorer.solana.com/address/GivpLzmmEH5M2WVbWqbjGRsSSSZxTvcGLFoC6rvwWFUm?cluster=devnet) *(Accepted State)*
+
+---
+
+## 🛡️ Core Financial Principle: Non-Custodial Settlement
+
+**BazaarX servers and databases NEVER take custody of buyer or supplier funds.**
+
+* **Off-Chain Layer (Next.js + Express + Prisma)**: Manages catalog search, product specifications, inventory listings, order caching, and supplier contact metadata.
+* **On-Chain Layer (Solana Anchor Smart Contract)**: Holds exclusive financial authority, governs Program-Derived Address (PDA) escrow vaults, enforces state machine invariants, and executes automated payment release upon verified delivery.
+
+---
+
+## 🔄 6-Stage Programmable Settlement Lifecycle
 
 ```text
-Buyer (Signer)
-  │
-  │ create_order(order_id, supplier, mint, amount)
-  ▼
-[ Order PDA ] ─── State: CREATED
-  │
-  │ accept_order()
-  ▼
-Supplier (Signer)
-  │
-  ▼
-[ Order PDA ] ─── State: ACCEPTED
+[Created] ──(Supplier accepts)──> [Accepted] ──(Buyer deposits USDC)──> [Funded]
+                                                                            │
+[Completed] <──(Program releases payment)── [Delivered] <──(Buyer confirms)─ [Shipped]
 ```
 
-At the conclusion of Day 1, no token transfers occur yet. Instead, the contract establishes an authenticated, deterministic commitment between the buyer and designated supplier.
+1. **Created**: Buyer initiates order with quantity, price, and designated supplier, deriving an immutable Order PDA.
+2. **Accepted**: Designated supplier cryptographically accepts the order, committing stock and delivery timeline.
+3. **Funded**: Buyer locks wholesale funds into the program-owned escrow vault PDA (`["vault", order_pda]`).
+4. **Shipped**: Supplier dispatches freight along Nepal trade corridors (Birgunj-Kathmandu, Butwal-Pokhara).
+5. **Delivered**: Buyer verifies goods at receiving warehouse and cryptographically confirms receipt.
+6. **Completed**: Smart contract triggers automated CPI transfer of USDC from the vault directly to the supplier wallet.
 
 ---
 
-## On-Chain vs. Off-Chain Separation
+## 🔒 Security Architecture & Exploit Defense
 
-| Data Element | Layer | Justification |
-|---|---|---|
-| Order State (`Created`, `Accepted`, etc.) | **On-Chain (Order PDA)** | Must be enforced by smart contract logic to prevent unauthorized state manipulation. |
-| Buyer & Supplier Public Keys | **On-Chain (Order PDA)** | Authority verification for subsequent escrow funding and fulfillment steps. |
-| Agreed Payment Amount & Mint | **On-Chain (Order PDA)** | Prevents price slippage or currency tampering before escrow funding. |
-| Timestamps (`created_at`, `accepted_at`) | **On-Chain (Clock)** | Trusted time source for auditability, delivery SLA tracking, and dispute windows. |
-| Product SKUs, Descriptions, Images | **Off-Chain (Database)** | High byte volume; non-financial metadata does not belong in expensive on-chain storage. |
-| Business Registration & KYB Data | **Off-Chain (Database)** | Off-chain compliance records referenced by wallet address. |
+All 7 primary smart contract attack vectors were tested directly against the deployed program on Solana Devnet (`scripts/test_security_devnet.ts`) and proven **BLOCKED ON-CHAIN**:
 
----
+1. **Zero-Amount Orders**: Blocked (`BazaarXError::InvalidAmount` `6001`).
+2. **Self-Trading (buyer == supplier)**: Blocked (`BazaarXError::InvalidSupplier` `6008`).
+3. **Arbitrary / Fake Token Mint Substitution**: Blocked (`BazaarXError::InvalidMint` `6002`).
+4. **Unauthorized Order Acceptance**: Blocked by `has_one = supplier` check (`6003`).
+5. **State Skipping**: Blocked by strict state match guards (`6004`).
+6. **Unauthorized Delivery Confirmation**: Blocked by `has_one = buyer` check (`6004`).
+7. **Premature Payment Release**: Blocked by Anchor runtime and state checks.
 
-## PDA Derivation Model
-
-### 1. Config PDA
-Global protocol configuration storing administrative controls and the canonical token mint accepted for settlements (e.g. USDC).
-
-* **Seeds**: `["config"]`
-* **Account Structure**:
-  ```rust
-  pub struct Config {
-      pub admin: Pubkey,      // 32 bytes: Admin authority
-      pub usdc_mint: Pubkey,  // 32 bytes: Canonical USDC mint
-      pub bump: u8,           // 1 byte: Canonical PDA bump
-  }
-  ```
-* **Space**: `8 + 32 + 32 + 1 = 73 bytes`
-
-### 2. Order PDA
-Unique, deterministic trade account binding an individual buyer to a specific order ID.
-
-* **Seeds**: `["order", buyer.key(), order_id.to_le_bytes()]`
-* **Account Structure**:
-  ```rust
-  pub struct Order {
-      pub order_id: u64,       // 8 bytes: Order identifier
-      pub buyer: Pubkey,       // 32 bytes: Buyer wallet (creator & payer)
-      pub supplier: Pubkey,    // 32 bytes: Designated supplier wallet
-      pub mint: Pubkey,        // 32 bytes: Settlement token mint
-      pub amount: u64,         // 8 bytes: Settlement amount (in minor units)
-      pub state: OrderState,   // 1 byte: Trade lifecycle state
-      pub created_at: i64,     // 8 bytes: Creation timestamp
-      pub accepted_at: i64,    // 8 bytes: Acceptance timestamp
-      pub bump: u8,            // 1 byte: Order PDA bump
-  }
-  ```
-* **Space**: `8 + 8 + 32 + 32 + 32 + 8 + 1 + 8 + 8 + 1 = 148 bytes`
+### Frontend Hardening
+* **Purged Simulated Signatures**: All mock preview signature fallbacks (`demo_preview_...`, `preview_mode_...`) were eliminated. Real transactions strictly require a connected Solana wallet.
+* **Pre-Flight Client Checks**: Validates SOL gas balance ($\ge 0.001\text{ SOL}$) and USDC balance before transaction broadcast.
+* **Standardized Error Messaging**: Mapped wallet rejections to `"Transaction cancelled"`, and balance deficits to `"Insufficient USDC balance"` and `"Insufficient SOL for transaction fees"`.
+* **Anti-Phishing**: All external Solana Explorer and faucet links enforce `target="_blank" rel="noopener noreferrer"`.
 
 ---
 
-## Order State Machine
+## 📱 B2B Fintech Wallet Experience
 
-The complete trade lifecycle consists of 8 distinct states:
-
-```rust
-pub enum OrderState {
-    Created,    // Day 1
-    Accepted,   // Day 1
-    Funded,     // Day 2 (Future)
-    Shipped,    // Day 3 (Future)
-    Delivered,  // Day 4 (Future)
-    Disputed,   // Day 5 (Future)
-    Completed,  // Day 4 (Future)
-    Refunded,   // Day 5 (Future)
-}
-```
-
-### Day-1 Transition Rule
-The only valid state transition on Day 1 is:
-
-$$\text{Created} \longrightarrow \text{Accepted}$$
-
-All other transitions (`Accepted -> Created`, `Accepted -> Completed`, `Created -> Shipped`, etc.) are strictly rejected.
+* **Disconnected**: Prominent B2B `[ Connect Wallet ]` button opening standard Solana wallet selector.
+* **Connecting**: Anti-double-click disabled state displaying `Connecting...` with animated spinner.
+* **Connected**: Real-time account pill displaying `[ 0.143 SOL | 6VBK...CEM1 | DEVNET ]`.
+* **Account Dropdown**:
+  * Truncated address with instant one-click copy (`"Copied!"` indicator).
+  * Direct Devnet Explorer link (`?cluster=devnet`).
+  * Live SOL and Devnet USDC balance queries directly from Solana RPC with manual refresh button.
+  * Informational Circle Devnet Faucet link for wallets with `0.00 USDC`.
+  * Safe Disconnect action.
+* **Responsive Viewport Support**: Tested and verified at 375px (mobile), 768px (tablet), 1280px (desktop), and 1920px (widescreen).
 
 ---
 
-## Security Enforcements
-
-1. **Self-Dealing Prevention**:
-   `ctx.accounts.buyer.key() != supplier` (A buyer cannot create an order with themselves as the supplier).
-2. **Positive Value Enforcement**:
-   `amount > 0` (Zero-value orders are rejected).
-3. **Canonical Token Mint Enforcement**:
-   `mint == ctx.accounts.config.usdc_mint` (Prevents bad actors from locking orders using fake/arbitrary SPL tokens).
-4. **Deterministic PDA Derivation**:
-   `seeds = ["order", buyer.key().as_ref(), &order_id.to_le_bytes()]` with `bump` verification prevents arbitrary account injection.
-5. **Supplier Authorization**:
-   `has_one = supplier` on `accept_order` ensures only the supplier explicitly designated in the order account can accept it.
-6. **State Transition Guard**:
-   `accept_order` validates `order.state == OrderState::Created`, preventing double-acceptance or modifying orders in subsequent states.
-
----
-
-## Future Escrow Model (Day-2 Readiness)
-
-On Day 2, we will introduce the SPL token vault:
-
-```text
-Buyer
-  │
-  │ transfers USDC
-  ▼
-[ Vault Token Account (PDA-Owned) ]
-  │
-  ├── State: FUNDED
-  │
-  │ (Fulfillment verified)
-  ▼
-Supplier receives USDC
-```
-
-### Day-2 Prerequisites Completed Today:
-* ✅ Order PDA uniquely stores `buyer`, `supplier`, `amount`, and canonical `mint`.
-* ✅ Order PDA can act as the authority seed for deriving the Day-2 token vault (`["vault", order.key()]`).
-* ✅ `OrderState::Funded` is already defined in the enum.
-
----
-
----
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
 bazarX/
-├── frontend/                # Next.js 14 App Router (Tailwind CSS, Solana Wallet Adapter)
-│   ├── app/                 # Routes: Marketplace, Orders, Dashboards, Admin
-│   ├── components/          # Reusable UI components & WalletContextProvider
-│   ├── lib/                 # Solana SDK, types, mock data & client store
-│   ├── package.json         # Independent frontend dependencies
-│   └── tsconfig.json
-├── backend/                 # Node.js + Express + Prisma API Service
-│   ├── src/
-│   │   ├── routes/          # /api/products, /api/orders
-│   │   ├── server.ts        # Express server entry point (port 5000)
-│   │   ├── store.ts         # In-memory / DB storage layer
-│   │   └── types.ts         # Backend data models
-│   ├── prisma/
-│   │   └── schema.prisma    # Prisma relational schema (SQLite / PostgreSQL)
-│   ├── package.json         # Independent backend dependencies
-│   └── tsconfig.json
-├── programs/
-│   └── bazaarx/             # Solana Anchor smart contract (Rust)
-│       └── src/
-│           ├── lib.rs       # Program entry point & instruction routing
-│           ├── errors.rs    # Program error codes
-│           ├── instructions/# initialize_config, create_order, accept_order
-│           └── state/       # Config and Order account structures
-├── tests/
-│   └── bazaarx.ts           # Anchor TypeScript mocha integration tests
-├── Anchor.toml              # Anchor workspace configuration
-├── Cargo.toml               # Rust workspace manifest
-└── package.json             # Root scripts for testing & workspaces
+├── docs/                     # Comprehensive documentation suite
+│   ├── ARCHITECTURE.md       # High-level topology, component breakdowns, PDA formulas
+│   ├── DEPLOYMENT.md         # Verified Devnet transactions & troubleshooting guide
+│   ├── README.md             # Documentation portal index
+│   ├── REQUIREMENTS.md       # Product requirements & 6-stage lifecycle specifications
+│   ├── SECURITY.md           # Smart contract threat model & 7 exploit test results
+│   └── WORK_DONE.md          # Granular implementation timeline & audit changelog
+├── frontend/                 # Next.js 14 App Router (Tailwind CSS, Solana Wallet Adapter)
+│   ├── app/                  # Routes: /marketplace, /orders, /dashboard, /admin
+│   ├── components/           # WalletButton, NetworkStatus, ConfirmModal, TransactionStatus
+│   ├── idl/                  # bazaarx.json (compiled Anchor IDL)
+│   ├── lib/                  # solana.ts, useWalletBalance.ts, mockData.ts
+│   └── package.json
+├── backend/                  # Node.js + Express API Service (port 5000)
+│   ├── src/                  # Routes: /api/products, /api/orders, /health
+│   └── package.json
+├── programs/                 # Solana Anchor smart contract (Rust)
+│   └── bazaarx/src/
+│       ├── lib.rs            # Program entry point & instruction routing
+│       ├── errors.rs         # Program error codes
+│       ├── instructions/     # 7 lifecycle instructions
+│       └── state/            # Config (73B) & Order (138B) account structures
+├── scripts/                  # Automated verification & security test scripts
+│   ├── test_security_devnet.ts  # 7-attack exploit test suite
+│   └── e2e_escrow_flow.ts       # End-to-end escrow lifecycle runner
+├── Anchor.toml               # Anchor workspace configuration
+└── vercel.json               # Multi-service edge deployment routing
 ```
 
 ---
 
-## Running Locally
+## 🚀 Running Locally
 
-### 1. Run Backend Service (Express on Port 5000)
-```bash
-# From root:
-npm run dev:backend
-
-# Or directly inside backend/:
+### 1. Start the Backend API (Port 5000)
+```powershell
 cd backend
+npm install
 npm run dev
 ```
 
-### 2. Run Frontend Application (Next.js on Port 3000)
-```bash
-# From root:
-npm run dev:frontend
-
-# Or directly inside frontend/:
+### 2. Start the Frontend Application (Port 3000)
+```powershell
 cd frontend
+npm install
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) in your browser. API calls are automatically routed to the backend or handled via local state.
-
-### 3. Run Smart Contract Tests (Anchor)
-```bash
-npm test
-```
+Visit [http://localhost:3000](http://localhost:3000) in your browser. Ensure your Solana wallet extension (Phantom or Solflare) is set to **Solana Devnet**.
 
 ---
 
-## Toolchain & Verification Instructions
+## 🧪 Verification Commands
 
-### Prerequisites
-* Rust & Cargo (`rustc >= 1.75.0`)
-* Solana CLI (`>= 1.18.0` or Agave `>= 2.0.0`)
-* Anchor CLI (`0.30.1`)
-* Node.js (`>= 18.0.0`) & NPM
+```powershell
+# Verify TypeScript compilation (Frontend)
+cd frontend
+npx tsc --noEmit
 
-> *Note: On Windows machines, Solana SBF program compilation requires running inside **WSL 2 (Ubuntu)** due to Linux ELF linker dependencies.*
-
-### Commands
-```bash
-# 1. Install client dependencies
-npm install
-
-# 2. Build program (inside Linux/WSL environment with Solana CLI)
-anchor build
-
-# 3. Execute unit and security integration test suite
-anchor test
+# Verify Production Build (Frontend)
+npm run build
 ```
-

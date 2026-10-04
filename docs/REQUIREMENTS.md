@@ -1,44 +1,80 @@
 # BazaarX — System Requirements & Specifications
 
-## 1. Product Overview
-**BazaarX** is Nepal's first programmable on-chain B2B wholesale settlement marketplace built on Solana. It enables wholesale agricultural and commodity trading between buyers (retailers, distributors) and suppliers (farmers, producers, cooperatives) with cryptographic escrow protection.
+**Project:** BazaarX — Programmable B2B Wholesale Settlement for Nepal  
+**Target Blockchain:** Solana Devnet  
+**Canonical Settlement Mint:** Circle Devnet USDC (`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`)  
+**Program ID:** `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`  
 
 ---
 
-## 2. Core Problem & Value Proposition
-* **Traditional Wholesale in Nepal:** Plagued by delayed payments, informal credit risk, lack of payment guarantees, and non-delivery disputes.
-* **The BazaarX Solution:** The Solana Anchor smart contract acts as an immutable, non-custodial escrow authority. The BazaarX backend **never** custodies or holds buyer funds. Payment is programmatically released only upon cryptographic confirmation of delivery.
+## 1. Product Context & Objectives
+
+In Nepal's wholesale economy (e.g. agricultural commodities, cooking oils, grains moving along trade corridors like Birgunj-Kathmandu or Butwal-Pokhara), commerce is heavily constrained by **counterparty trust risk**:
+* **Buyer Risk**: Pre-paying 100% upfront risks supplier default, substandard crop quality, or transit damage along hazardous mountain corridors.
+* **Supplier Risk**: Supplying goods on credit (30–60 day *dhukuti* / *khata*) leads to chronic defaults, working capital starvation, and collection friction.
+
+**BazaarX** resolves this deadlock by replacing informal credit and central exchange custody with **programmable, non-custodial smart contracts on Solana**.
 
 ---
 
-## 3. Order Lifecycle State Machine
+## 2. Order Lifecycle State Machine
+
 ```text
 [Created] ──(Supplier accepts)──> [Accepted] ──(Buyer deposits USDC)──> [Funded]
                                                                             │
 [Completed] <──(Program releases payment)── [Delivered] <──(Buyer confirms)─ [Shipped]
 ```
 
-1. **Created:** Buyer places wholesale order with quantity, price, and designated supplier.
-2. **Accepted:** Designated supplier reviews order terms and cryptographically accepts.
-3. **Funded:** Buyer deposits token collateral (USDC) into the program-derived vault PDA (`["vault", order]`).
-4. **Shipped:** Supplier dispatches wholesale goods and marks consignment shipped.
-5. **Delivered:** Buyer inspects goods upon physical delivery and signs delivery confirmation.
-6. **Completed:** Anyone (permissionless) or supplier triggers `release_payment`. The Anchor program executes CPI to transfer funds from the Vault PDA to the supplier's token account.
+1. **Created**: Buyer creates an on-chain `Order` PDA specifying quantity, agreed unit price in USDC, and designated supplier.
+2. **Accepted**: Designated supplier cryptographically signs to commit stock and delivery SLA.
+3. **Funded**: Buyer transfers USDC collateral into the program-derived `Vault` PDA (`["vault", order_pda]`).
+4. **Shipped**: Supplier hands freight to highway carrier and signs dispatch record.
+5. **Delivered**: Buyer physically inspects consignment at warehouse and cryptographically signs delivery receipt.
+6. **Completed**: Smart contract invokes Cross-Program Invocation (CPI) to transfer USDC from `Vault` directly to the supplier's token account.
 
 ---
 
-## 4. System Roles & Access Control
-| Role | Capabilities | Wallet Required |
-| :--- | :--- | :--- |
-| **Buyer** | Create orders, fund token escrow, confirm delivery | Yes (Solana Wallet Adapter) |
-| **Supplier** | Accept wholesale orders, mark shipment dispatched | Yes (Matching supplier pubkey) |
-| **Admin** | Initialize protocol config, set canonical USDC mint | Yes (Admin authority) |
-| **Public / Any** | Browse commodity catalog, execute permissionless payment release | Optional |
+## 3. Functional Requirements
+
+### 3.1. Wallet Experience (B2B Fintech Standard)
+* **State A (Disconnected)**: Prominent `[ Connect Wallet ]` trigger that opens the standard Solana wallet modal without page redirects.
+* **State B (Connecting)**: Disabled `Connecting...` button with an active spinner to prevent repeated clicks.
+* **State C (Connected)**: Displays `[ 0.143 SOL | 6VBK...CEM1 | DEVNET ]` with active pulse indicator.
+* **Account Dropdown**:
+  * Truncated public key with one-click copy (`"Copied!"` indicator with clipboard error fallback).
+  * Direct link to Solana Explorer using `?cluster=devnet`.
+  * Real-time query of native SOL balance and Devnet USDC token balance with on-demand refresh spinner.
+  * Informational Circle Devnet Faucet link when USDC balance is `0.00` (does not look like a purchase option).
+  * Clean `Disconnect` action and non-custodial trust statement.
+
+### 3.2. Order Management & Escrow Funding
+* **Order Detail View**: Live Solana RPC synchronization displaying verified on-chain state, Order PDA, settlement token, and vault balance.
+* **Funding Pre-Validation**: Client pre-validates:
+  * SOL gas balance ($\ge 0.001\text{ SOL}$) before initiating transaction.
+  * USDC balance ($\ge \text{order.amountUsdc}$) before initiating transaction.
+* **Confirmation Modal**: High-impact financial actions require user confirmation detailing:
+  * **Amount**: Order total (e.g. `1.00 USDC`).
+  * **Destination**: `Solana escrow vault`.
+  * **Purpose**: `Lock payment until delivery confirmation`.
+  * **Action**: `Fund Escrow`.
+* **Transaction Feedback**: 6-stage lifecycle (`ready`, `waiting_approval`, `sending`, `confirming`, `confirmed`, `failed`). Explorer links rendered strictly when real signatures exist.
+
+### 3.3. Wholesale Marketplace Catalog
+* **Display Fields**: Product Name, Supplier Name, Supplier Location, Wholesale Price (USDC and NPR equivalent), Minimum Order Quantity (MOQ), and Category.
+* **Filters & Search**: Fast client-side category pill filtering and instant keyword search.
+* **Wallet Guard**: Disconnected buyers clicking to order receive an inline `"Wallet Connection Required"` prompt without page redirection.
 
 ---
 
-## 5. Non-Functional Requirements
-* **Zero Backend Custody:** BazaarX database and backend servers must never hold private keys or escrow balances.
-* **Deterministic Program Identity:** Single immutable program ID (`BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`) across all configurations.
-* **Real Explorer Links:** Every transaction hash shown in the UI must resolve to a valid transaction on Solana Devnet.
-* **Low Latency & High Throughput:** Sub-second transaction confirmation leveraging Solana runtime.
+## 4. Non-Functional & Security Requirements
+
+1. **Absolute Non-Custodial Architecture**: Neither backend servers nor database ever hold private keys or escrow balances.
+2. **Zero Simulated Signatures in Production**: Purged all `demo_preview_` and `preview_mode_` fallbacks; transactions strictly require genuine Solana wallet approval.
+3. **On-Chain Attack Invariants**:
+   * Order amount must be positive ($> 0$).
+   * Buyer cannot equal supplier (no self-trading).
+   * Token mint must match canonical protocol USDC mint (`4zMMC...ncDU`).
+   * State transitions strictly enforced via Anchor account guards (`has_one` checks).
+4. **Responsive Integrity**: Flawless layout and touch targets at 375px (mobile), 768px (tablet), 1280px (desktop), and 1920px (widescreen). Zero horizontal overflow.
+5. **Secure Tab Isolation**: All external links enforce `rel="noopener noreferrer"`.
+6. **Precise Trust Language**: Replaced marketing claims (`"Trustless"`, `"100%"`, `"BazaarX guarantees"`) with accurate cryptographic custody explanations.

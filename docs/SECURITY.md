@@ -1,28 +1,40 @@
 # BazaarX — Smart Contract Security & Cryptographic Audit
 
-## 1. Threat Model & Design Principles
-The core security thesis of BazaarX is **Non-Custodial Financial Settlement**. The off-chain backend and database are considered untrusted metadata caches. The Solana blockchain and Anchor program remain the sole authority over order state and escrowed funds.
+**Program ID:** `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`  
+**Network:** Solana Devnet  
+**Audit Date:** October 4, 2026  
+**Status:** **AUDITED & TESTED ON DEVNET**
 
 ---
 
-## 2. Smart Contract Constraints Audit
+## 1. Threat Model & Core Design Principles
 
-### 2.1. Account Validation Matrix
-| Instruction | Required Signer | Program PDA Checked | State Check | Token Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `initialize_config` | Admin (`Signer`) | `seeds = [b"config"]` | One-time `init` | Validates canonical mint |
-| `create_order` | Buyer (`Signer`) | `seeds = [b"order", buyer, order_id]` | Sets `Created` | `amount > 0`, `buyer != supplier`, `mint == config.usdc_mint` |
-| `accept_order` | Supplier (`Signer`) | Existing Order PDA | `state == Created` | `has_one = supplier` |
-| `fund_escrow` | Buyer (`Signer`) | `seeds = [b"vault", order.key()]` | `state == Accepted` | `buyer_token_account.owner == buyer`, `buyer_token_account.mint == order.mint` |
-| `mark_shipped` | Supplier (`Signer`) | Existing Order PDA | `state == Funded` | `has_one = supplier` |
-| `confirm_delivery` | Buyer (`Signer`) | Existing Order PDA | `state == Shipped` | `has_one = buyer` |
-| `release_payment` | Caller (`Signer`) | `seeds = [b"vault", order.key()]` | `state == Delivered` | `supplier_token_account.owner == order.supplier`, `supplier_token_account.mint == order.mint` |
+The security model of BazaarX is built on the foundation of **Non-Custodial Financial Settlement**:
+
+1. **Untrusted Off-Chain Layer**: The Next.js frontend, Express backend, and PostgreSQL database are treated as completely untrusted metadata caches. The database possesses zero capability to move, redirect, or freeze escrow funds.
+2. **Immutable On-Chain Authority**: The Solana Anchor program is the sole arbiter of trade lifecycle states and escrow vault balances.
+3. **No Private Key Custody**: BazaarX never requests, handles, or stores private keys or seed phrases. All interactions adhere to the Solana Wallet Standard.
+4. **Deterministic PDAs**: Program-Derived Addresses ensure that funds are held strictly by program vaults derived from order public keys, preventing third-party or administrative asset drainage.
+
+---
+
+## 2. Smart Contract Constraints & Access Control Matrix
+
+| Instruction | Required Signer | Program PDA Checked | State Check | Token Constraints | Error Code on Failure |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `initialize_config` | Admin (`Signer`) | `seeds = [b"config"]` | One-time `init` | Validates canonical mint | `AlreadyInUse` / `ConstraintSeeds` |
+| `create_order` | Buyer (`Signer`) | `seeds = [b"order", buyer, order_id]` | Sets `Created` | `amount > 0`, `buyer != supplier`, `mint == config.usdc_mint` | `6001`, `6008`, `6002` |
+| `accept_order` | Supplier (`Signer`) | Existing Order PDA | `state == Created` | `has_one = supplier` | `6003`, `6004` |
+| `fund_escrow` | Buyer (`Signer`) | `seeds = [b"vault", order.key()]` | `state == Accepted` | `buyer_token_account.owner == buyer`, `buyer_token_account.mint == order.mint` | `6004`, `ConstraintTokenOwner` |
+| `mark_shipped` | Supplier (`Signer`) | Existing Order PDA | `state == Funded` | `has_one = supplier` | `6003`, `6004` |
+| `confirm_delivery` | Buyer (`Signer`) | Existing Order PDA | `state == Shipped` | `has_one = buyer` | `6004`, `ConstraintHasOne` |
+| `release_payment` | Caller (`Signer`) | `seeds = [b"vault", order.key()]` | `state == Delivered` | `supplier_token_account.owner == order.supplier`, `supplier_token_account.mint == order.mint` | `6004`, `ConstraintTokenOwner` |
 
 ---
 
 ## 3. Real On-Chain Security & Exploit Test Results (Solana Devnet)
 
-Executed via `scripts/test_security_devnet.ts` directly against deployed program `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`:
+The automated security exploit test suite (`scripts/test_security_devnet.ts`) was executed directly against deployed program `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`:
 
 | Attack Scenario | Tested Exploit | Expected Program Error | Devnet Runtime Result | Status |
 | :--- | :--- | :--- | :--- | :--- |
@@ -36,7 +48,25 @@ Executed via `scripts/test_security_devnet.ts` directly against deployed program
 
 ---
 
-## 4. Account Serialization Space Verification
+## 4. Frontend Security & Anti-Phishing Measures
+
+In addition to smart contract level constraints, the client application enforces defensive security controls:
+
+1. **Purged Simulated Signatures**: All fallbacks generating mock hashes (`demo_preview_...`, `preview_mode_...`) were removed. State mutations strictly require verified cryptographic signatures.
+2. **Pre-Flight Balance Validation**: Before triggering wallet popups, client checks that:
+   * SOL gas balance is sufficient to cover network fees ($\ge 0.001\text{ SOL}$).
+   * USDC balance is sufficient to cover order funding ($\ge \text{amount}$).
+3. **Transparent Confirmation Modals**: Every high-impact financial action triggers a `ConfirmModal` detailing exact consignment, destination (`Solana escrow vault`), amount, and non-custodial terms.
+4. **Hardened External Links**: All external Solana Explorer and faucet links enforce `target="_blank" rel="noopener noreferrer"` to prevent reverse tabnabbing and window tampering.
+5. **Cluster Isolation**: NetworkStatus detects the active RPC cluster and warns users if their wallet is connected to a cluster other than Solana Devnet.
+6. **Sanitized Error Messaging**: Raw error stack traces are intercepted and mapped to user-friendly status updates (`Transaction cancelled`, `Insufficient USDC balance`, `Insufficient SOL for transaction fees`).
+
+---
+
+## 5. Account Space & Serialization Verification
+
+The `Order` account struct is defined as:
+
 * **Anchor Discriminator:** 8 bytes
 * `order_id` (`u64`): 8 bytes
 * `buyer` (`Pubkey`): 32 bytes
@@ -47,4 +77,5 @@ Executed via `scripts/test_security_devnet.ts` directly against deployed program
 * `created_at` (`i64`): 8 bytes
 * `accepted_at` (`i64`): 8 bytes
 * `bump` (`u8`): 1 byte
-* **Total Exact Account Space:** `138 bytes` (accurately declared as `Order::LEN`).
+
+**Total Exact Account Space:** `138 bytes` (accurately declared in `Order::LEN`). No reallocation is necessary during state transitions.
