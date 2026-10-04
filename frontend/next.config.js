@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  webpack: (config, { dev }) => {
+  webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -9,23 +9,7 @@ const nextConfig = {
       path: false,
       crypto: false,
     };
-    if (dev) {
-      config.watchOptions = {
-        poll: 800,
-        aggregateTimeout: 300,
-      };
-    }
     return config;
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: process.env.BACKEND_URL
-          ? `${process.env.BACKEND_URL}/api/:path*`
-          : 'http://localhost:5000/api/:path*',
-      },
-    ];
   },
 };
 

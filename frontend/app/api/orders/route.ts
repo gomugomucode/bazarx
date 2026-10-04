@@ -9,6 +9,7 @@ export async function GET(request: Request) {
   try {
     const { search } = new URL(request.url);
     const res = await fetch(`${BACKEND_URL}/api/orders${search}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Backend status: ${res.status}`);
     const data = await res.json();
     return NextResponse.json(data);
   } catch (err: any) {
@@ -25,29 +26,36 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let body: any;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  try {
     const res = await fetch(`${BACKEND_URL}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (!res.ok) throw new Error(`Backend status: ${res.status}`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err: any) {
     try {
       const { addOrder, getProductById } = await import('@/lib/store');
-      const body = await request.clone().json();
-      const product = getProductById(body.productId);
+      const product = getProductById(body?.productId);
       if (!product) return NextResponse.json({ success: false, error: 'Product not found' }, { status: 400 });
+      
       const newOrder = addOrder({
         id: `ord-${body.blockchainOrderId || Date.now()}`,
         blockchainOrderId: body.blockchainOrderId || Date.now(),
         productId: product.id,
         productName: product.name,
-        quantity: body.quantity,
+        quantity: Number(body.quantity) || 1,
         unit: product.unit,
-        amountUsdc: product.priceUsdc * body.quantity,
+        amountUsdc: product.priceUsdc * (Number(body.quantity) || 1),
         buyerWallet: body.buyerWallet,
         buyerName: body.buyerName || 'Buyer',
         supplierWallet: product.supplierWallet,

@@ -40,27 +40,23 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Product not found' });
     }
 
-    const calculatedAmount = product.priceUsdc * quantity;
+    const calculatedAmount = product.priceUsdc * (Number(quantity) || 1);
     const orderIdNum = blockchainOrderId || Math.floor(1000 + Math.random() * 9000);
     const orderIdStr = `ord-${orderIdNum}`;
     const now = new Date().toISOString();
 
-    const isSimulated = Boolean(
-      req.body.isSimulated ||
-      !signature ||
-      signature.startsWith('simulated')
-    );
+    const isRealOnChainTx = Boolean(signature && !signature.startsWith('simulated') && !signature.startsWith('sim_'));
 
     const initialTx: TransactionRecord = {
       step: 'Created',
-      signature: signature || `simulated_create_${Date.now()}`,
+      signature: isRealOnChainTx ? signature : undefined,
       timestamp: now,
       signer: buyerWallet || 'UnknownBuyer',
-      explorerUrl: isSimulated
-        ? undefined
-        : `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+      explorerUrl: isRealOnChainTx
+        ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+        : undefined,
       action: 'create_order',
-      isSimulated,
+      isSimulated: !isRealOnChainTx,
     };
 
     const newOrder: Order = {
@@ -68,7 +64,7 @@ router.post('/', (req: Request, res: Response) => {
       blockchainOrderId: orderIdNum,
       productId: product.id,
       productName: product.name,
-      quantity,
+      quantity: Number(quantity) || 1,
       unit: product.unit,
       amountUsdc: calculatedAmount,
       buyerWallet: buyerWallet || 'DemoBuyerWallet',
@@ -100,22 +96,18 @@ router.patch('/:id', (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    const isSimulated = Boolean(
-      req.body.isSimulated ||
-      !signature ||
-      signature.startsWith('simulated')
-    );
+    const isRealOnChainTx = Boolean(signature && !signature.startsWith('simulated') && !signature.startsWith('sim_'));
 
     const txRecord: TransactionRecord = {
       step: nextState,
-      signature: signature || `simulated_${nextState.toLowerCase()}_${Date.now()}`,
+      signature: isRealOnChainTx ? signature : undefined,
       timestamp: new Date().toISOString(),
       signer: signer || 'SignerWallet',
-      explorerUrl: isSimulated
-        ? undefined
-        : `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+      explorerUrl: isRealOnChainTx
+        ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+        : undefined,
       action: action || `execute_${nextState.toLowerCase()}`,
-      isSimulated,
+      isSimulated: !isRealOnChainTx,
     };
 
     const updated = store.updateOrderState(existingOrder.id, nextState, txRecord);

@@ -11,6 +11,7 @@ export async function GET(
 ) {
   try {
     const res = await fetch(`${BACKEND_URL}/api/orders/${params.id}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Backend status: ${res.status}`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err: any) {
@@ -28,22 +29,28 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  let body: any;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  try {
     const res = await fetch(`${BACKEND_URL}/api/orders/${params.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (!res.ok) throw new Error(`Backend status: ${res.status}`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err: any) {
     try {
       const { updateOrderState } = await import('@/lib/store');
-      const body = await request.clone().json();
       const updated = updateOrderState(params.id, body.nextState, {
         step: body.nextState,
-        signature: body.signature || `sim_${Date.now()}`,
+        signature: body.signature || undefined,
         timestamp: new Date().toISOString(),
         signer: body.signer || 'Signer',
         action: body.action || 'update',

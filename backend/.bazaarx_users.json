@@ -40,5 +40,13 @@
       "BUYER"
     ],
     "createdAt": "2026-10-04T12:39:24.701Z"
+  },
+  {
+    "wallet": "7YwY3Kz4Y6kXU2tH5RkM9QzP9wKz4Y6kXU2tH5RkM9Qz",
+    "businessName": "Attacker Corp",
+    "roles": [
+      "BUYER"
+    ],
+    "createdAt": "2026-10-04T13:44:18.556Z"
   }
 ]
