@@ -23,6 +23,8 @@ jobs:
             git config --global --add safe.directory '*' &&
             mkdir -p target/deploy &&
             echo '[235,253,177,173,242,203,7,253,150,237,71,115,199,40,232,218,153,150,22,229,131,23,161,10,135,227,92,146,192,56,213,182,152,192,233,33,218,48,145,179,126,187,117,244,178,98,214,194,169,3,189,245,254,134,123,107,208,164,23,83,2,112,132,197]' > target/deploy/bazaarx-keypair.json &&
+            cargo generate-lockfile &&
+            (cargo update -p zeroize_derive --precise 1.4.2 || true) &&
             anchor build
           " 2>&1 | tee build.log
 
