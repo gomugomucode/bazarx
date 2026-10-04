@@ -71,13 +71,16 @@ export const getOrders = (wallet?: string | null, role?: string | null): Order[]
   const fromDisk = readJsonFile<Order[]>(ORDERS_FILE, INITIAL_ORDERS);
   global.__bazaarx_orders = fromDisk;
   if (wallet) {
+    const target = wallet.trim().toLowerCase();
     if (role === 'buyer') {
-      return fromDisk.filter((o) => o.buyerWallet === wallet);
+      return fromDisk.filter((o) => o.buyerWallet.toLowerCase() === target);
     } else if (role === 'supplier') {
-      return fromDisk.filter((o) => o.supplierWallet === wallet);
+      return fromDisk.filter((o) => o.supplierWallet.toLowerCase() === target);
     }
     return fromDisk.filter(
-      (o) => o.buyerWallet === wallet || o.supplierWallet === wallet
+      (o) =>
+        o.buyerWallet.toLowerCase() === target ||
+        o.supplierWallet.toLowerCase() === target
     );
   }
   return fromDisk;

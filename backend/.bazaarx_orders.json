@@ -54,13 +54,13 @@
     "state": "Accepted",
     "orderPda": "4w3xY9kK7nZ8tU2vPqLmNoPrStUvWxYz1234567890ab",
     "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
-    "createdAt": "2026-10-04T04:42:16.764Z",
-    "acceptedAt": "2026-10-04T06:42:16.765Z",
+    "createdAt": "2026-10-04T08:38:39.104Z",
+    "acceptedAt": "2026-10-04T10:38:39.105Z",
     "transactions": [
       {
         "step": "Created",
         "signature": "simulated_create_ord1001",
-        "timestamp": "2026-10-04T04:42:16.765Z",
+        "timestamp": "2026-10-04T08:38:39.105Z",
         "signer": "BuyErNepalTrade111111111111111111111111111111",
         "action": "create_order",
         "isSimulated": true
@@ -68,7 +68,7 @@
       {
         "step": "Accepted",
         "signature": "simulated_accept_ord1001",
-        "timestamp": "2026-10-04T06:42:16.765Z",
+        "timestamp": "2026-10-04T10:38:39.105Z",
         "signer": "SuppL1erTeraiOiL111111111111111111111111111111",
         "action": "accept_order",
         "isSimulated": true
@@ -88,17 +88,17 @@
     "supplierWallet": "SuppL2erAnnapurna1111111111111111111111111111",
     "supplierName": "Annapurna Grains & Flour Mills",
     "shippingAddress": "Lakeside Street 6, Pokhara",
-    "state": "Completed",
+    "state": "Funded",
     "orderPda": "8v4wX2mN1kZ7tU3vPqLmNoPrStUvWxYz0987654321cd",
     "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
-    "createdAt": "2026-10-04T00:42:16.765Z",
-    "acceptedAt": "2026-10-04T02:42:16.765Z",
-    "fundedAt": "2026-10-04T05:42:16.765Z",
+    "createdAt": "2026-10-04T04:38:39.105Z",
+    "acceptedAt": "2026-10-04T06:38:39.105Z",
+    "fundedAt": "2026-10-04T09:38:39.105Z",
     "transactions": [
       {
         "step": "Created",
         "signature": "simulated_create_ord1002",
-        "timestamp": "2026-10-04T00:42:16.765Z",
+        "timestamp": "2026-10-04T04:38:39.105Z",
         "signer": "BuyErNepalTrade111111111111111111111111111111",
         "action": "create_order",
         "isSimulated": true
@@ -106,7 +106,7 @@
       {
         "step": "Accepted",
         "signature": "simulated_accept_ord1002",
-        "timestamp": "2026-10-04T02:42:16.765Z",
+        "timestamp": "2026-10-04T06:38:39.105Z",
         "signer": "SuppL2erAnnapurna1111111111111111111111111111",
         "action": "accept_order",
         "isSimulated": true
@@ -114,30 +114,11 @@
       {
         "step": "Funded",
         "signature": "simulated_fund_ord1002",
-        "timestamp": "2026-10-04T05:42:16.765Z",
+        "timestamp": "2026-10-04T09:38:39.105Z",
         "signer": "BuyErNepalTrade111111111111111111111111111111",
         "action": "fund_escrow",
         "isSimulated": true
-      },
-      {
-        "step": "Completed",
-        "signature": "test_sig",
-        "timestamp": "2026-10-04T08:42:27.613Z",
-        "signer": "wallet",
-        "explorerUrl": "https://explorer.solana.com/tx/test_sig?cluster=devnet",
-        "action": "execute_completed",
-        "isSimulated": false
-      },
-      {
-        "step": "Completed",
-        "signature": "test_sig",
-        "timestamp": "2026-10-04T08:42:39.765Z",
-        "signer": "wallet",
-        "explorerUrl": "https://explorer.solana.com/tx/test_sig?cluster=devnet",
-        "action": "execute_completed",
-        "isSimulated": false
       }
-    ],
-    "completedAt": "2026-10-04T08:42:39.765Z"
+    ]
   }
 ]

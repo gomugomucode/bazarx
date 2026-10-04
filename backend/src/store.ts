@@ -99,13 +99,16 @@ class Store {
   getOrders(wallet?: string | null, role?: string | null): Order[] {
     const orders = this.getOrdersFromDisk();
     if (wallet) {
+      const target = wallet.trim().toLowerCase();
       if (role === 'buyer') {
-        return orders.filter((o) => o.buyerWallet === wallet);
+        return orders.filter((o) => o.buyerWallet.toLowerCase() === target);
       } else if (role === 'supplier') {
-        return orders.filter((o) => o.supplierWallet === wallet);
+        return orders.filter((o) => o.supplierWallet.toLowerCase() === target);
       }
       return orders.filter(
-        (o) => o.buyerWallet === wallet || o.supplierWallet === wallet
+        (o) =>
+          o.buyerWallet.toLowerCase() === target ||
+          o.supplierWallet.toLowerCase() === target
       );
     }
     return orders;
