@@ -1,0 +1,13 @@
+.anchor
+.DS_Store
+target
+node_modules
+dist
+.env
+.env.*
+**/*.key
+**/*-keypair.json
+id.json
+test-ledger
+coverage
+.system_generated
