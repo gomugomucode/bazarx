@@ -1,0 +1,36 @@
+[
+  {
+    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K",
+    "businessName": "Kathmandu Valley Wholesale Buyer",
+    "roles": [
+      "BUYER"
+    ],
+    "createdAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "wallet": "8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP",
+    "businessName": "Terai Edible Oils & Food Industries",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "createdAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "wallet": "HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV",
+    "businessName": "BazaarX Protocol Administrator",
+    "roles": [
+      "ADMIN",
+      "BUYER",
+      "SUPPLIER"
+    ],
+    "createdAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "wallet": "UnknownWalletTest111111111111111111111111111",
+    "businessName": "Pokhara Trading House",
+    "roles": [
+      "BUYER"
+    ],
+    "createdAt": "2026-10-04T11:54:41.579Z"
+  }
+]
