@@ -6,6 +6,12 @@ export const revalidate = 0;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 const SOLANA_PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
+// SECURITY ARCHITECTURE NOTE:
+// Validates Base58 public key format and enforces address uniqueness across business accounts.
+// Links the settlement address for business order routing and profile display.
+// This does NOT claim cryptographic proof-of-ownership (SIWS).
+// Cryptographic transaction signing is strictly enforced on-chain by the Solana Anchor runtime
+// via the browser wallet adapter when dispatching escrow instructions.
 export async function POST(request: Request) {
   const cookieHeader = request.headers.get('cookie') || '';
   const authHeader = request.headers.get('authorization') || '';

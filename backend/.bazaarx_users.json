@@ -91,5 +91,56 @@
     "verificationNotes": "Buyer profile submitted. Verification pending.",
     "createdAt": "2026-10-04T15:21:10.776Z",
     "updatedAt": "2026-10-04T15:21:10.776Z"
+  },
+  {
+    "id": "usr_1791130247235_75de1236",
+    "email": "unrelated_1791130246980@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T16:10:47.235Z",
+    "updatedAt": "2026-10-04T16:10:47.235Z"
+  },
+  {
+    "id": "usr_1791130301787_6db04a5b",
+    "email": "unrelated_1791130301776@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T16:11:41.787Z",
+    "updatedAt": "2026-10-04T16:11:41.787Z"
+  },
+  {
+    "id": "usr_1791130407823_0a724b94",
+    "email": "unrelated_1791130407519@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T16:13:27.823Z",
+    "updatedAt": "2026-10-04T16:13:27.823Z"
   }
 ]

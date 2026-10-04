@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const token = (authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined) || (match ? decodeURIComponent(match[1]) : undefined);
 
   if (!token) {
-    return NextResponse.json({ success: false, user: null });
+    return NextResponse.json({ success: false, user: null, error: 'Unauthorized' }, { status: 401 });
   }
 
   // 1. Try backend
@@ -24,10 +24,8 @@ export async function GET(request: Request) {
       },
       cache: 'no-store',
     });
-    if (res.ok) {
-      const data = await res.json();
-      return NextResponse.json(data);
-    }
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   } catch (e) {
     // Backend unreachable, try local store
   }
@@ -37,14 +35,14 @@ export async function GET(request: Request) {
     const { getSession, getUserById, sanitizeUser } = await import('@/lib/store');
     const session = getSession(token);
     if (!session) {
-      return NextResponse.json({ success: false, user: null });
+      return NextResponse.json({ success: false, user: null, error: 'Unauthorized' }, { status: 401 });
     }
     const user = getUserById(session.userId);
     if (!user) {
-      return NextResponse.json({ success: false, user: null });
+      return NextResponse.json({ success: false, user: null, error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.json({ success: true, user: sanitizeUser(user) });
   } catch (err: any) {
-    return NextResponse.json({ success: false, user: null });
+    return NextResponse.json({ success: false, user: null, error: 'Unauthorized' }, { status: 401 });
   }
 }

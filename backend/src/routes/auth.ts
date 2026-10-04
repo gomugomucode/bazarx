@@ -189,12 +189,18 @@ router.post('/logout', (req: Request, res: Response) => {
 router.get('/me', (req: Request, res: Response) => {
   const user = getAuthUser(req);
   if (!user) {
-    return res.json({ success: false, user: null });
+    return res.status(401).json({ success: false, user: null, error: 'Unauthorized' });
   }
   return res.json({ success: true, user: sanitizeUser(user) });
 });
 
 // POST /api/auth/link-wallet (Link connected Solana settlement wallet)
+// SECURITY ARCHITECTURE NOTE:
+// This endpoint validates Base58 public key format and enforces address uniqueness across accounts.
+// It links the settlement address for business order routing and profile representation.
+// It is NOT cryptographic proof-of-ownership (e.g. Sign-In-With-Solana / Ed25519 signature challenge).
+// True non-custodial authorization is strictly enforced on-chain by the Solana Anchor runtime:
+// the connected wallet adapter must directly sign every transaction instruction.
 router.post('/link-wallet', (req: Request, res: Response) => {
   const user = getAuthUser(req);
   if (!user) {
