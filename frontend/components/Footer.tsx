@@ -16,8 +16,8 @@ export const Footer = () => {
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-md">
               Nepal&apos;s programmable B2B wholesale settlement platform. By decoupling wholesale
-              marketplace data from on-chain escrow custody, BazaarX guarantees that customer
-              funds are released only when cryptographically verified delivery criteria are fulfilled.
+              marketplace data from on-chain escrow custody, funds are locked in a Solana escrow
+              program and released only when cryptographically verified delivery criteria are fulfilled.
             </p>
             <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-3 py-1.5 rounded-lg w-fit">
               <Lock className="w-3.5 h-3.5" />
@@ -47,7 +47,7 @@ export const Footer = () => {
                 <a
                   href="https://explorer.solana.com/address/BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN?cluster=devnet"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="text-[11px] text-emerald-400 hover:text-emerald-300 bg-slate-800 hover:bg-slate-750 px-1.5 py-0.5 rounded inline-flex items-center gap-1 font-mono transition-colors"
                 >
                   BHHaiHFR...vQoN <ExternalLink className="w-2.5 h-2.5" />

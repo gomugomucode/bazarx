@@ -159,21 +159,21 @@ export default function ProductDetailPage() {
           const isUserRejected =
             chainErr.message?.toLowerCase().includes('reject') ||
             chainErr.message?.toLowerCase().includes('cancel') ||
-            chainErr.message?.toLowerCase().includes('declined');
+            chainErr.message?.toLowerCase().includes('declined') ||
+            chainErr.message?.toLowerCase().includes('user rejected');
           setErrorMsg(
             isUserRejected
-              ? 'Transaction was cancelled in your wallet.'
+              ? 'Transaction cancelled'
               : `On-chain order creation failed: ${chainErr.message || 'Transaction rejected by Devnet runtime'}`
           );
           setCreating(false);
           return;
         }
       } else {
-        const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
-        orderPdaString = orderPda.toBase58();
-        realSignature = `preview_mode_${orderIdNumber}`;
-        setTxSig(realSignature);
-        setTxStage('confirmed');
+        setErrorMsg('Please connect your Solana wallet to create an on-chain order on Devnet.');
+        setTxStage('failed');
+        setCreating(false);
+        return;
       }
 
       // Sync with backend order registry

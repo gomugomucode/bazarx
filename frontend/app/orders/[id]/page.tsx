@@ -212,7 +212,7 @@ export default function OrderDetailPage() {
           const lamports = await connection.getBalance(anchorWallet.publicKey, 'confirmed');
           if (lamports < 0.001 * 1e9) {
             setTxStage('failed');
-            setErrorMsg('Insufficient SOL for transaction fees. Please request Devnet SOL for network gas.');
+            setErrorMsg('Insufficient SOL for transaction fees');
             setActionInProgress(false);
             return;
           }
@@ -229,7 +229,7 @@ export default function OrderDetailPage() {
 
           if (currentUsdc < order.amountUsdc) {
             setTxStage('failed');
-            setErrorMsg(`Insufficient USDC balance. Required: ${order.amountUsdc}.00 USDC, available: ${currentUsdc.toFixed(2)} USDC.`);
+            setErrorMsg('Insufficient USDC balance');
             setActionInProgress(false);
             return;
           }
@@ -311,9 +311,9 @@ export default function OrderDetailPage() {
           const rawMsg = chainErr.message?.toLowerCase() || '';
 
           if (rawMsg.includes('reject') || rawMsg.includes('cancel') || rawMsg.includes('declined') || rawMsg.includes('user rejected')) {
-            setErrorMsg('Transaction cancelled.');
+            setErrorMsg('Transaction cancelled');
           } else if (rawMsg.includes('insufficient funds') || rawMsg.includes('0x1')) {
-            setErrorMsg('Insufficient USDC balance or SOL for transaction fees.');
+            setErrorMsg('Insufficient USDC balance');
           } else {
             setErrorMsg(`On-chain transaction failed: ${chainErr.message || 'Transaction rejected by Solana runtime'}`);
           }
@@ -321,11 +321,10 @@ export default function OrderDetailPage() {
           return;
         }
       } else {
-        // Fallback preview mode when running without connected signing wallet
-        realSignature = `demo_preview_${nextState.toLowerCase()}_${Date.now()}`;
-        isSimulated = true;
-        setActiveSignature(realSignature);
-        setTxStage('confirmed');
+        setErrorMsg('Please connect your Solana wallet to sign this transaction on Devnet.');
+        setTxStage('failed');
+        setActionInProgress(false);
+        return;
       }
 
       const res = await fetch(`/api/orders/${order.id}`, {
@@ -712,12 +711,12 @@ export default function OrderDetailPage() {
                         'Your wallet will sign this transaction to transfer and lock USDC into the non-custodial Solana escrow vault.',
                         [
                           { label: 'Amount', value: `${order.amountUsdc}.00 USDC` },
-                          { label: 'Destination', value: 'Solana Escrow Vault PDA', isMono: true },
+                          { label: 'Destination', value: 'Solana escrow vault' },
                           { label: 'Purpose', value: 'Lock payment until delivery confirmation' },
                           { label: 'Settlement Token', value: 'Circle Devnet USDC' },
                         ],
                         'Funds are locked in a Solana escrow program. BazaarX never takes custody of your funds. Payment is released after delivery confirmation.',
-                        `Fund Escrow (${order.amountUsdc}.00 USDC)`,
+                        'Fund Escrow',
                         'bg-emerald-600 hover:bg-emerald-500'
                       )
                     }

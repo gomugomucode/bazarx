@@ -62,7 +62,7 @@ export const Navbar = () => {
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-500 font-medium hidden md:block">
-                    Trustless Wholesale Settlement
+                    Non-Custodial Wholesale Settlement
                   </p>
                 </div>
               </Link>

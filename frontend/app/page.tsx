@@ -59,7 +59,7 @@ export default function HomePage() {
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Trustless B2B <span className="text-emerald-400">Trade Settlement</span>
+            Non-Custodial B2B <span className="text-emerald-400">Trade Settlement</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-normal">
@@ -96,7 +96,7 @@ export default function HomePage() {
               <span className="text-xs text-slate-400 font-medium">Solana Settlement Time</span>
             </div>
             <div className="text-left bg-slate-800/40 p-3.5 rounded-xl border border-slate-800">
-              <span className="text-2xl font-bold text-white block">100%</span>
+              <span className="text-xl font-bold text-white block">Deterministic</span>
               <span className="text-xs text-slate-400 font-medium">On-Chain State Machine</span>
             </div>
             <div className="text-left bg-slate-800/40 p-3.5 rounded-xl border border-slate-800">

@@ -137,7 +137,7 @@ export const TransactionStatus: React.FC<TransactionStatusProps> = ({
             <p className="text-emerald-800">
               The on-chain state transition has been permanently committed to the Solana blockchain.
             </p>
-            {isRealSignature && signature ? (
+            {isRealSignature && signature && (
               <div className="pt-1.5 flex items-center gap-2">
                 <a
                   href={getExplorerTxUrl(signature, 'devnet')}
@@ -149,11 +149,7 @@ export const TransactionStatus: React.FC<TransactionStatusProps> = ({
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
-            ) : signature ? (
-              <div className="pt-1 text-[10px] font-mono text-slate-500">
-                (Simulated / Preview mode: {signature})
-              </div>
-            ) : null}
+            )}
           </div>
         )}
 

@@ -99,7 +99,7 @@ export default function AdminProtocolPage() {
             <a
               href={getExplorerAccountUrl(DEVNET_USDC_MINT.toBase58())}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-slate-900 font-bold hover:text-emerald-700 flex items-center gap-1 break-all"
             >
               {DEVNET_USDC_MINT.toBase58()}
