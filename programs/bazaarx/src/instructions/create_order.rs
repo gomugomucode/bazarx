@@ -19,8 +19,6 @@ pub struct CreateOrder<'info> {
         init,
         payer = buyer,
         space = Order::LEN,
-        seeds = [Order::SEED_PREFIX, &order_id.to_le_bytes()],
-        bump
     )]
     pub order: Account<'info, Order>,
 

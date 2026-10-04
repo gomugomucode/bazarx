@@ -26,6 +26,16 @@ pub struct FundEscrow<'info> {
     )]
     pub buyer_token_account: Account<'info, TokenAccount>,
 
+    #[cfg(feature = "idl-build")]
+    #[account(
+        init_if_needed,
+        payer = buyer,
+        token::mint = mint,
+        token::authority = order,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+
+    #[cfg(not(feature = "idl-build"))]
     #[account(
         init_if_needed,
         payer = buyer,
