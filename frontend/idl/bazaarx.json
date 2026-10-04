@@ -111,7 +111,8 @@
         },
         {
           "name": "order",
-          "writable": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "system_program",
@@ -175,7 +176,8 @@
         },
         {
           "name": "vault",
-          "writable": true
+          "writable": true,
+          "signer": true
         },
         {
           "name": "token_program",
