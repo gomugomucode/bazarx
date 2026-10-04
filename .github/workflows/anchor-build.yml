@@ -19,18 +19,12 @@ jobs:
 
       - name: Run Anchor Build via Docker
         run: |
-          docker run --rm -v "${{ github.workspace }}:/work" -w /work backpackapp/build:v0.30.1 bash -c "
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work backpackapp/build:v0.31.0 bash -c "
             git config --global --add safe.directory '*' &&
-            (rustup update stable && rustup default stable || true) &&
-            cargo generate-lockfile &&
-            (cargo update -p blake3 --precise 1.5.5 || true) &&
-            (cargo update -p toml_parser --precise 1.0.10 || true) &&
-            (cargo update -p toml_edit --precise 0.22.24 || true) &&
-            (cargo update -p toml_datetime --precise 0.6.8 || true) &&
-            (cargo update -p base64ct --precise 1.6.0 || true) &&
-            (cargo update -p constant_time_eq --precise 0.4.1 || true) &&
-            (cargo update -p bytemuck_derive --precise 1.8.1 || true) &&
-            (cargo update -p winnow --precise 0.6.26 || true) &&
+            rustc --version &&
+            cargo --version &&
+            solana --version &&
+            anchor --version &&
             anchor build
           " 2>&1 | tee build.log
 
