@@ -124,7 +124,22 @@ export const Navbar = () => {
                 <NetworkStatus variant="badge" />
               </div>
 
-              {mounted && !loading && (
+              {!mounted ? (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/login"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-sm transition-all"
+                  >
+                    Register
+                  </Link>
+                </div>
+              ) : !loading && (
                 <>
                   {!user ? (
                     // LOGGED OUT: Show Login & Register (no wallet-as-login button)
