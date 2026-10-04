@@ -58,3 +58,12 @@ export interface Order {
   completedAt?: string;
   transactions: TransactionRecord[];
 }
+
+export type UserRole = 'BUYER' | 'SUPPLIER' | 'ADMIN';
+
+export interface UserProfile {
+  wallet: string;
+  businessName: string;
+  roles: UserRole[];
+  createdAt: string;
+}

@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import productsRouter from './routes/products';
 import ordersRouter from './routes/orders';
+import usersRouter from './routes/users';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,7 @@ app.get('/', (req: Request, res: Response) => {
       health: '/health',
       products: '/api/products',
       orders: '/api/orders',
+      users: '/api/users',
     },
     frontendUrl: 'http://localhost:3000',
     documentation: 'https://github.com/gomugomucode/bazarx/tree/main/docs',
@@ -41,6 +43,7 @@ app.get('/api/health', healthHandler);
 // Mount API routes
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
+app.use('/api/users', usersRouter);
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {
