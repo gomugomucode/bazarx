@@ -157,13 +157,82 @@ Supplier receives USDC
 
 ---
 
+---
+
+## Project Structure
+
+```text
+bazarX/
+├── frontend/                # Next.js 14 App Router (Tailwind CSS, Solana Wallet Adapter)
+│   ├── app/                 # Routes: Marketplace, Orders, Dashboards, Admin
+│   ├── components/          # Reusable UI components & WalletContextProvider
+│   ├── lib/                 # Solana SDK, types, mock data & client store
+│   ├── package.json         # Independent frontend dependencies
+│   └── tsconfig.json
+├── backend/                 # Node.js + Express + Prisma API Service
+│   ├── src/
+│   │   ├── routes/          # /api/products, /api/orders
+│   │   ├── server.ts        # Express server entry point (port 5000)
+│   │   ├── store.ts         # In-memory / DB storage layer
+│   │   └── types.ts         # Backend data models
+│   ├── prisma/
+│   │   └── schema.prisma    # Prisma relational schema (SQLite / PostgreSQL)
+│   ├── package.json         # Independent backend dependencies
+│   └── tsconfig.json
+├── programs/
+│   └── bazaarx/             # Solana Anchor smart contract (Rust)
+│       └── src/
+│           ├── lib.rs       # Program entry point & instruction routing
+│           ├── errors.rs    # Program error codes
+│           ├── instructions/# initialize_config, create_order, accept_order
+│           └── state/       # Config and Order account structures
+├── tests/
+│   └── bazaarx.ts           # Anchor TypeScript mocha integration tests
+├── Anchor.toml              # Anchor workspace configuration
+├── Cargo.toml               # Rust workspace manifest
+└── package.json             # Root scripts for testing & workspaces
+```
+
+---
+
+## Running Locally
+
+### 1. Run Backend Service (Express on Port 5000)
+```bash
+# From root:
+npm run dev:backend
+
+# Or directly inside backend/:
+cd backend
+npm run dev
+```
+
+### 2. Run Frontend Application (Next.js on Port 3000)
+```bash
+# From root:
+npm run dev:frontend
+
+# Or directly inside frontend/:
+cd frontend
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) in your browser. API calls are automatically routed to the backend or handled via local state.
+
+### 3. Run Smart Contract Tests (Anchor)
+```bash
+npm test
+```
+
+---
+
 ## Toolchain & Verification Instructions
 
 ### Prerequisites
 * Rust & Cargo (`rustc >= 1.75.0`)
 * Solana CLI (`>= 1.18.0` or Agave `>= 2.0.0`)
 * Anchor CLI (`0.30.1`)
-* Node.js (`>= 18.0.0`) & Yarn / NPM
+* Node.js (`>= 18.0.0`) & NPM
 
 > *Note: On Windows machines, Solana SBF program compilation requires running inside **WSL 2 (Ubuntu)** due to Linux ELF linker dependencies.*
 
@@ -178,3 +247,4 @@ anchor build
 # 3. Execute unit and security integration test suite
 anchor test
 ```
+
