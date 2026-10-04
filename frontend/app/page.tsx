@@ -235,10 +235,10 @@ export default function HomePage() {
               Enter Wholesale Marketplace
             </Link>
             <Link
-              href="/dashboard/buyer"
+              href="/dashboard"
               className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 transition-all"
             >
-              Open Buyer Dashboard
+              Open Trade Dashboard
             </Link>
           </div>
         </div>

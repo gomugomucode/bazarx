@@ -150,10 +150,10 @@ export default function OrderDetailPage() {
           The requested order ID does not exist in the registry or could not be loaded.
         </p>
         <Link
-          href="/dashboard/buyer"
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-xs text-emerald-700 font-bold hover:underline pt-2"
         >
-          <ArrowLeft className="w-4 h-4" /> Go to Buyer Orders
+          <ArrowLeft className="w-4 h-4" /> Go to Dashboard
         </Link>
       </div>
     );
@@ -368,10 +368,10 @@ export default function OrderDetailPage() {
       {/* Top Breadcrumb Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
-          href="/dashboard/buyer"
+          href="/dashboard"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Orders Dashboard
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
         </Link>
 
         <div className="flex items-center gap-2">

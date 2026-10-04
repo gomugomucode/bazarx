@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   ShieldCheck,
   Store,
-  ShoppingBag,
-  Truck,
+  LayoutDashboard,
   Cpu,
   Menu,
   X,
@@ -32,8 +31,7 @@ export const Navbar = () => {
 
   const navLinks = [
     { name: 'Marketplace', href: '/marketplace', icon: Store },
-    { name: 'Buyer Orders', href: '/dashboard/buyer', icon: ShoppingBag },
-    { name: 'Supplier Hub', href: '/dashboard/supplier', icon: Truck },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'On-Chain Protocol', href: '/admin', icon: Cpu },
   ];
 
