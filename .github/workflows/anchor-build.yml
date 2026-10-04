@@ -14,7 +14,7 @@ jobs:
 
       - name: Run Anchor Build via Docker
         run: |
-          docker run --rm -v "${{ github.workspace }}:/work" -w /work coralxyz/anchor:v0.30.1 anchor build
+          docker run --rm -v "${{ github.workspace }}:/work" -w /work --entrypoint bash coralxyz/anchor:v0.30.1 -c "anchor build"
 
       - name: Verify Generated Artifacts
         run: |
