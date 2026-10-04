@@ -13,8 +13,11 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   } catch (err: any) {
     try {
+      const { searchParams } = new URL(request.url);
+      const wallet = searchParams.get('wallet');
+      const role = searchParams.get('role');
       const { getOrders } = await import('@/lib/store');
-      return NextResponse.json({ success: true, orders: getOrders() });
+      return NextResponse.json({ success: true, orders: getOrders(wallet, role) });
     } catch (e: any) {
       return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
