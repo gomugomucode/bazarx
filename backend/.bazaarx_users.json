@@ -32,5 +32,13 @@
       "BUYER"
     ],
     "createdAt": "2026-10-04T11:54:41.579Z"
+  },
+  {
+    "wallet": "NewUnknownWallet1111111111111111111111111111",
+    "businessName": "Dharan Tea & Spices",
+    "roles": [
+      "BUYER"
+    ],
+    "createdAt": "2026-10-04T12:39:24.701Z"
   }
 ]
