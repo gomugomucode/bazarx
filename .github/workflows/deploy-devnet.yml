@@ -1,23 +1,32 @@
-name: Deploy BazaarX to Solana Devnet
+name: Deploy and Verify BazaarX on Solana Devnet
 
 on:
   push:
     paths:
       - 'target/deploy/bazaarx.so'
       - '.github/workflows/deploy-devnet.yml'
+      - 'scripts/verify-devnet-program.js'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  deploy-and-verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Solana CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Root Dependencies
+        run: npm install --no-audit
+
+      - name: Install Solana CLI (Anza)
         run: |
           sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
@@ -31,16 +40,29 @@ jobs:
           # Deployer Keypair (Address: HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV)
           echo '[239,33,33,233,209,149,169,38,237,103,58,137,165,33,87,119,194,142,115,208,13,127,152,249,218,179,27,191,92,189,8,249,246,11,30,239,178,114,137,184,144,146,248,40,176,194,159,140,204,170,222,39,20,252,209,130,198,151,184,62,164,155,175,86]' > target/deploy/deployer-keypair.json
 
-      - name: Verify Binary and Balance
+      - name: Verify Environment and Keypairs
         run: |
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           ls -la target/deploy/
           solana --version
+          solana config set --keypair target/deploy/deployer-keypair.json --url https://api.devnet.solana.com
           solana address -k target/deploy/bazaarx-keypair.json
           solana address -k target/deploy/deployer-keypair.json
           solana balance target/deploy/deployer-keypair.json --url https://api.devnet.solana.com
 
-      - name: Deploy to Solana Devnet
+      - name: Check Existing On-Chain Deployment
+        id: check_status
+        run: |
+          if node scripts/verify-devnet-program.js; then
+            echo "already_deployed=true" >> $GITHUB_OUTPUT
+            echo "Program is already verified and active on Devnet. Skipping redeploy."
+          else
+            echo "already_deployed=false" >> $GITHUB_OUTPUT
+            echo "Program not found on Devnet. Proceeding to deploy."
+          fi
+
+      - name: Deploy to Solana Devnet (if not deployed)
+        if: steps.check_status.outputs.already_deployed != 'true'
         run: |
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           solana program deploy target/deploy/bazaarx.so \
@@ -48,7 +70,11 @@ jobs:
             --keypair target/deploy/deployer-keypair.json \
             --url https://api.devnet.solana.com
 
-      - name: Verify On-Chain Deployment
+      - name: Verify On-Chain Deployment (CLI & Web3.js)
         run: |
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-          solana program show BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN --url https://api.devnet.solana.com
+          solana config set --keypair target/deploy/deployer-keypair.json --url https://api.devnet.solana.com
+          solana program show BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN \
+            --keypair target/deploy/deployer-keypair.json \
+            --url https://api.devnet.solana.com
+          node scripts/verify-devnet-program.js
