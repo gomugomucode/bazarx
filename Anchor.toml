@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-bazaarx = "BzxDay1Foundation111111111111111111111111111"
+bazaarx = "BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN"
 
 [programs.devnet]
-bazaarx = "BzxDay1Foundation111111111111111111111111111"
+bazaarx = "BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN"
 
 [registry]
 url = "https://api.apr.dev"

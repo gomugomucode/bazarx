@@ -6,7 +6,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("BzxDay1Foundation111111111111111111111111111");
+declare_id!("BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN");
 
 #[program]
 pub mod bazaarx {

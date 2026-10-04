@@ -1,9 +1,9 @@
 import { PublicKey, Connection, clusterApiUrl } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 
-// BazaarX Program ID as declared in Anchor program
-export const PROGRAM_ID_STRING = 'BzxDay1Foundation111111111111111111111111111';
-export const PROGRAM_ID = new PublicKey('11111111111111111111111111111111'); // fallback valid pubkey if string has custom vanity
+// BazaarX Program ID (matching target/deploy/bazaarx-keypair.json)
+export const PROGRAM_ID_STRING = 'BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN';
+export const PROGRAM_ID = new PublicKey(PROGRAM_ID_STRING);
 
 // Solana Devnet canonical USDC mint (Circle Devnet USDC)
 export const DEVNET_USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');

@@ -20,6 +20,6 @@ impl Order {
 
     // Space: 8 (discriminator) + 8 (order_id) + 32 (buyer) + 32 (supplier)
     // + 32 (mint) + 8 (amount) + 1 (state) + 8 (created_at) + 8 (accepted_at) + 1 (bump)
-    // Total = 148 bytes
+    // Total = 138 bytes
     pub const LEN: usize = 8 + 8 + 32 + 32 + 32 + 8 + 1 + 8 + 8 + 1;
 }
