@@ -10,14 +10,16 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
+const healthHandler = (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     service: 'BazaarX Settlement Backend',
     version: '1.0.0',
     network: 'Solana Devnet',
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // Mount API routes
 app.use('/api/products', productsRouter);
