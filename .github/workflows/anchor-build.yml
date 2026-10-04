@@ -1,0 +1,38 @@
+name: Anchor Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: coralxyz/anchor:v0.30.1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Anchor Program
+        run: |
+          git config --global --add safe.directory "*"
+          anchor build
+
+      - name: Upload IDL Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anchor-idl
+          path: target/idl/bazaarx.json
+
+      - name: Upload Program Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: anchor-binary
+          path: target/deploy/bazaarx.so
+
+      - name: Upload TypeScript Types
+        uses: actions/upload-artifact@v4
+        with:
+          name: anchor-types
+          path: target/types/bazaarx.ts
