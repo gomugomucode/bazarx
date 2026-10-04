@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Product } from '@/lib/types';
 import {
   deriveOrderPda,
@@ -24,14 +25,19 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  Wallet,
+  Building,
+  Info,
 } from 'lucide-react';
 import Link from 'next/link';
+import { TransactionStatus, TxLifecycleStage } from '@/components/TransactionStatus';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { publicKey, connected } = useWallet();
   const anchorWallet = useAnchorWallet();
+  const { setVisible: openWalletModal } = useWalletModal();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +45,11 @@ export default function ProductDetailPage() {
   const [shippingAddress, setShippingAddress] = useState('Kalanki Wholesale Depot, Kathmandu');
   const [creating, setCreating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showWalletPrompt, setShowWalletPrompt] = useState(false);
+
+  // Transaction stage tracking
+  const [txStage, setTxStage] = useState<TxLifecycleStage>('ready');
+  const [txSig, setTxSig] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -60,22 +71,22 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-16 text-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto"></div>
-        <p className="text-slate-500 text-sm mt-4">Loading wholesale commodity details...</p>
+      <div className="max-w-5xl mx-auto px-4 py-20 text-center space-y-3">
+        <div className="animate-spin rounded-full h-9 w-9 border-2 border-emerald-600 border-t-transparent mx-auto" />
+        <p className="text-slate-500 text-xs font-medium">Loading wholesale commodity details...</p>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-16 text-center space-y-4">
-        <p className="text-slate-700 font-bold">Product not found.</p>
+      <div className="max-w-5xl mx-auto px-4 py-20 text-center space-y-4">
+        <p className="text-slate-700 font-bold">Wholesale Commodity Not Found</p>
         <Link
           href="/marketplace"
-          className="inline-flex items-center gap-2 text-sm text-emerald-600 font-semibold hover:underline"
+          className="inline-flex items-center gap-2 text-xs text-emerald-700 font-bold hover:underline"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Marketplace
+          <ArrowLeft className="w-4 h-4" /> Back to Wholesale Marketplace
         </Link>
       </div>
     );
@@ -85,12 +96,20 @@ export default function ProductDetailPage() {
   const totalAmountNpr = product.priceNpr * quantity;
 
   const handleCreateOrder = async () => {
+    // Phase 10: If wallet is disconnected, show clean wallet connection prompt without redirecting
+    if (!connected || !publicKey) {
+      setShowWalletPrompt(true);
+      return;
+    }
+
     setErrorMsg(null);
     setCreating(true);
+    setTxStage('waiting_approval');
+    setTxSig(null);
 
     try {
       const orderIdNumber = Math.floor(1000 + Math.random() * 9000);
-      const buyerPubkey = publicKey ? publicKey : undefined;
+      const buyerPubkey = publicKey;
 
       // Derive Order PDA
       let orderPdaString = 'PDA_Pending';
@@ -109,8 +128,10 @@ export default function ProductDetailPage() {
           const amountMicroUsdc = new BN(totalAmountUsdc).mul(new BN(1_000_000));
           const supplierPubkey = new PublicKey(product.supplierWallet);
 
+          setTxStage('sending');
+
           // Submit real Anchor transaction to Solana Devnet
-          const txSig = await program.methods
+          const txSignature = await program.methods
             .createOrder(
               new BN(orderIdNumber),
               supplierPubkey,
@@ -125,30 +146,44 @@ export default function ProductDetailPage() {
             })
             .rpc();
 
-          realSignature = txSig;
+          realSignature = txSignature;
           isSimulated = false;
+          setTxSig(realSignature);
+
+          setTxStage('confirming');
+          await connection.confirmTransaction(realSignature, 'confirmed');
+          setTxStage('confirmed');
         } catch (chainErr: any) {
           console.error('Solana Devnet transaction error:', chainErr);
-          const isUserRejected = chainErr.message?.toLowerCase().includes('reject') || chainErr.message?.toLowerCase().includes('cancel');
-          setErrorMsg(isUserRejected ? 'Transaction cancelled by user.' : `On-chain transaction error: ${chainErr.message || 'Transaction failed on Devnet'}`);
+          setTxStage('failed');
+          const isUserRejected =
+            chainErr.message?.toLowerCase().includes('reject') ||
+            chainErr.message?.toLowerCase().includes('cancel') ||
+            chainErr.message?.toLowerCase().includes('declined');
+          setErrorMsg(
+            isUserRejected
+              ? 'Transaction was cancelled in your wallet.'
+              : `On-chain order creation failed: ${chainErr.message || 'Transaction rejected by Devnet runtime'}`
+          );
           setCreating(false);
           return;
         }
-      } else if (buyerPubkey) {
+      } else {
         const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
         orderPdaString = orderPda.toBase58();
         realSignature = `preview_mode_${orderIdNumber}`;
-      } else {
-        realSignature = `preview_mode_${orderIdNumber}`;
+        setTxSig(realSignature);
+        setTxStage('confirmed');
       }
 
+      // Sync with backend order registry
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: product.id,
           quantity,
-          buyerWallet: buyerPubkey ? buyerPubkey.toBase58() : 'BuyErNepalTrade111111111111111111111111111111',
+          buyerWallet: buyerPubkey.toBase58(),
           buyerName: 'Kathmandu Wholesale Retailers Ltd',
           shippingAddress,
           orderPda: orderPdaString,
@@ -160,15 +195,17 @@ export default function ProductDetailPage() {
 
       const data = await res.json();
       if (!data.success) {
-        throw new Error(data.error || 'Failed to create order');
+        throw new Error(data.error || 'Failed to create order record');
       }
 
-      // Redirect immediately to the order lifecycle detail page
-      router.push(`/orders/${data.order.id}`);
+      // Short delay for user to see confirmed status before navigating
+      setTimeout(() => {
+        router.push(`/orders/${data.order.id}`);
+      }, 1200);
     } catch (err: any) {
       console.error('Order creation error:', err);
+      setTxStage('failed');
       setErrorMsg(err.message || 'An error occurred during order creation');
-    } finally {
       setCreating(false);
     }
   };
@@ -200,7 +237,7 @@ export default function ProductDetailPage() {
                 {product.category}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Verified Commercial Consignment
+                Verified Wholesale Consignment
               </span>
             </div>
 
@@ -216,8 +253,11 @@ export default function ProductDetailPage() {
           {/* Supplier Profile Card */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 space-y-4 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Wholesale Supplier Details</h3>
-              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Building className="w-4 h-4 text-slate-500" />
+                Wholesale Supplier Details
+              </h3>
+              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 KYB Verified
               </span>
             </div>
@@ -244,7 +284,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Right Column: Wholesale Order Form */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-md sticky top-24">
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm sticky top-24">
           <div>
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
               Wholesale Pricing
@@ -253,12 +293,12 @@ export default function ProductDetailPage() {
               <span className="text-3xl font-black text-slate-900">
                 ${product.priceUsdc}
               </span>
-              <span className="text-sm font-semibold text-slate-500">
+              <span className="text-xs font-semibold text-slate-500">
                 USDC / {product.unit}
               </span>
             </div>
             <span className="text-xs text-slate-400 font-mono">
-              ≈ Rs. {product.priceNpr.toLocaleString()} NPR (Estimated Rate)
+              ≈ Rs. {product.priceNpr.toLocaleString()} NPR
             </span>
           </div>
 
@@ -274,20 +314,24 @@ export default function ProductDetailPage() {
                   min={product.minOrder}
                   max={product.availableStock}
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.max(product.minOrder, parseInt(e.target.value) || product.minOrder))}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  onChange={(e) =>
+                    setQuantity(
+                      Math.max(product.minOrder, parseInt(e.target.value) || product.minOrder)
+                    )
+                  }
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-                <span>Min Order Quantity: {product.minOrder} {product.unit}s</span>
-                <span>Stock: {product.availableStock} units</span>
+                <span>MOQ: {product.minOrder} {product.unit}s</span>
+                <span>Available Stock: {product.availableStock} units</span>
               </div>
             </div>
 
             {/* Delivery Destination */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Receiving Warehouse / Delivery Address
+                Receiving Warehouse / Delivery Destination
               </label>
               <input
                 type="text"
@@ -306,7 +350,7 @@ export default function ProductDetailPage() {
               <span>${product.priceUsdc} USDC</span>
             </div>
             <div className="flex justify-between text-slate-500">
-              <span>Quantity</span>
+              <span>Order Quantity</span>
               <span>{quantity} {product.unit}s</span>
             </div>
             <div className="flex justify-between text-slate-500">
@@ -314,7 +358,7 @@ export default function ProductDetailPage() {
               <span className="text-emerald-700 font-semibold">0.00 USDC (Promo)</span>
             </div>
             <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-sm text-slate-900">
-              <span>Total Escrow Value</span>
+              <span>Total Settlement Value</span>
               <span className="text-emerald-700 font-black">${totalAmountUsdc} USDC</span>
             </div>
             <div className="text-right text-[11px] text-slate-400 font-mono">
@@ -322,44 +366,86 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Error Message */}
-          {errorMsg && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
+          {/* Transaction Stage Component */}
+          {txStage !== 'ready' && (
+            <TransactionStatus
+              stage={txStage}
+              actionTitle="Create Order"
+              signature={txSig}
+              errorMessage={errorMsg}
+              onRetry={() => setTxStage('ready')}
+              onDismiss={() => setTxStage('ready')}
+            />
+          )}
+
+          {/* Clean Disconnected Wallet Prompt Modal / Banner */}
+          {showWalletPrompt && !connected && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-3 animate-in fade-in duration-150">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-xs">Wallet Connection Required</h4>
+                  <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                    Placing a wholesale order creates an on-chain Order PDA derived from your buyer wallet public key. Please connect your wallet to proceed.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWalletPrompt(false);
+                  openWalletModal(true);
+                }}
+                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+              >
+                <Wallet className="w-4 h-4 text-emerald-400" />
+                Connect Solana Wallet
+              </button>
             </div>
           )}
 
           {/* Escrow Guarantee Notice */}
-          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs leading-relaxed flex items-start gap-2.5">
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs leading-relaxed flex items-start gap-2.5">
             <Lock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
               <strong className="block font-semibold">Program-Governed Escrow:</strong>
-              Your payment will be locked into the Solana program vault on Day 2. The supplier cannot withdraw funds until you confirm physical inspection.
+              Your payment will be locked into the Solana program vault. The supplier cannot withdraw funds until you confirm physical inspection.
             </div>
           </div>
 
-          {/* Action CTA */}
+          {/* Connected Buyer Indicator */}
+          {connected && publicKey && (
+            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Buyer Signer:
+              </span>
+              <span className="font-mono font-bold text-slate-800">
+                {shortenAddress(publicKey.toBase58(), 5)}
+              </span>
+            </div>
+          )}
+
+          {/* Action CTA: Create Order */}
           <button
             onClick={handleCreateOrder}
             disabled={creating}
-            className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {creating ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Creating On-Chain Order PDA...
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Signing create_order on Devnet...</span>
               </>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                Initialize On-Chain Order (${totalAmountUsdc} USDC)
+                <span>Create Order (${totalAmountUsdc} USDC)</span>
               </>
             )}
           </button>
 
           <p className="text-[11px] text-center text-slate-400">
-            Signs the <code>create_order</code> instruction on the Solana smart contract.
+            Signs <code>create_order</code> on the Solana program • Zero custodial intermediary
           </p>
         </div>
       </div>
