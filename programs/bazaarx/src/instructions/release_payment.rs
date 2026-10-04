@@ -15,6 +15,15 @@ pub struct ReleasePayment<'info> {
     )]
     pub mint: Account<'info, Mint>,
 
+    #[cfg(feature = "idl-build")]
+    #[account(
+        mut,
+        token::mint = mint,
+        token::authority = order,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+
+    #[cfg(not(feature = "idl-build"))]
     #[account(
         mut,
         seeds = [b"vault", order.key().as_ref()],
