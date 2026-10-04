@@ -459,24 +459,52 @@ export default function OrderDetailPage() {
             {order.state === 'Shipped' && (
               <div className="space-y-4">
                 <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 space-y-1.5">
-                  <p className="font-semibold">Step 5 &amp; 6: Confirm Delivery &amp; Settle</p>
+                  <p className="font-semibold">Step 5: Confirm Consignment Delivery</p>
                   <p className="text-[11px] leading-relaxed">
-                    Goods have arrived at your depot. Once physical quality and count are confirmed,
-                    signing will release the escrowed USDC directly to the supplier.
+                    Goods have arrived at your wholesale warehouse. Inspect count and quality, then sign the
+                    <code>confirm_delivery</code> on-chain transaction.
                   </p>
                 </div>
 
                 <button
-                  onClick={() => executeStep('Completed', 'confirm_delivery_and_release', 'buyer')}
+                  onClick={() => executeStep('Delivered', 'confirm_delivery', 'buyer')}
+                  disabled={actionInProgress}
+                  className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {actionInProgress ? (
+                    'Confirming Delivery on Solana...'
+                  ) : (
+                    <>
+                      <PackageCheck className="w-4 h-4" />
+                      Sign: Confirm Delivery (Buyer)
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Stage 5: Delivered -> Next Action: Release Payment */}
+            {order.state === 'Delivered' && (
+              <div className="space-y-4">
+                <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 space-y-1.5">
+                  <p className="font-semibold">Step 6: Release Escrow Payment</p>
+                  <p className="text-[11px] leading-relaxed">
+                    Delivery is confirmed on-chain. Execute the <code>release_payment</code> instruction to
+                    transfer ${order.amountUsdc} USDC from the smart contract vault to the supplier.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => executeStep('Completed', 'release_payment', 'supplier')}
                   disabled={actionInProgress}
                   className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {actionInProgress ? (
-                    'Releasing USDC from Vault...'
+                    'Transferring USDC from Vault...'
                   ) : (
                     <>
-                      <PackageCheck className="w-4 h-4" />
-                      Sign: Confirm Delivery &amp; Release Payment
+                      <Lock className="w-4 h-4" />
+                      Sign: Release Payment to Supplier
                     </>
                   )}
                 </button>
