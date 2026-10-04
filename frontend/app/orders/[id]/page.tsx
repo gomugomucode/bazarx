@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { Order, OrderState, TransactionRecord } from '@/lib/types';
 import { Timeline } from '@/components/Timeline';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
@@ -10,7 +11,13 @@ import {
   getExplorerTxUrl,
   getExplorerAccountUrl,
   DEVNET_USDC_MINT,
+  getConnection,
+  getAnchorProgram,
+  deriveVaultPda,
+  getAssociatedTokenAccount,
 } from '@/lib/solana';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
   ShieldCheck,
   Lock,
@@ -28,6 +35,8 @@ import Link from 'next/link';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { publicKey } = useWallet();
+  const anchorWallet = useAnchorWallet();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,18 +97,98 @@ export default function OrderDetailPage() {
     setActionInProgress(true);
 
     try {
-      // Clearly label as simulated demo transaction until Anchor devnet deployment
-      const simSig = `simulated_${nextState.toLowerCase()}_${Date.now()}`;
+      let realSignature = '';
+      let isSimulated = true;
+
+      if (anchorWallet && order.orderPda && order.orderPda !== 'PDA_Pending') {
+        try {
+          const connection = getConnection();
+          const program = getAnchorProgram(connection, anchorWallet);
+          const orderPda = new PublicKey(order.orderPda);
+          const mintPubkey = DEVNET_USDC_MINT;
+          const [vaultPda] = deriveVaultPda(orderPda);
+
+          if (nextState === 'Accepted') {
+            const txSig = await program.methods
+              .acceptOrder()
+              .accounts({
+                supplier: anchorWallet.publicKey,
+                order: orderPda,
+              })
+              .rpc();
+            realSignature = txSig;
+            isSimulated = false;
+          } else if (nextState === 'Funded') {
+            const buyerTokenAccount = getAssociatedTokenAccount(anchorWallet.publicKey, mintPubkey);
+            const txSig = await program.methods
+              .fundEscrow()
+              .accounts({
+                buyer: anchorWallet.publicKey,
+                order: orderPda,
+                mint: mintPubkey,
+                buyerTokenAccount,
+                vault: vaultPda,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .rpc();
+            realSignature = txSig;
+            isSimulated = false;
+          } else if (nextState === 'Shipped') {
+            const txSig = await program.methods
+              .markShipped()
+              .accounts({
+                supplier: anchorWallet.publicKey,
+                order: orderPda,
+              })
+              .rpc();
+            realSignature = txSig;
+            isSimulated = false;
+          } else if (nextState === 'Delivered') {
+            const txSig = await program.methods
+              .confirmDelivery()
+              .accounts({
+                buyer: anchorWallet.publicKey,
+                order: orderPda,
+              })
+              .rpc();
+            realSignature = txSig;
+            isSimulated = false;
+          } else if (nextState === 'Completed') {
+            const supplierTokenAccount = getAssociatedTokenAccount(new PublicKey(order.supplierWallet), mintPubkey);
+            const txSig = await program.methods
+              .releasePayment()
+              .accounts({
+                caller: anchorWallet.publicKey,
+                order: orderPda,
+                mint: mintPubkey,
+                vault: vaultPda,
+                supplierTokenAccount,
+                tokenProgram: TOKEN_PROGRAM_ID,
+              })
+              .rpc();
+            realSignature = txSig;
+            isSimulated = false;
+          }
+        } catch (chainErr: any) {
+          console.warn('Devnet transaction error, falling back to simulated demo step:', chainErr);
+          realSignature = `simulated_${nextState.toLowerCase()}_${Date.now()}`;
+          isSimulated = true;
+        }
+      } else {
+        realSignature = `simulated_${nextState.toLowerCase()}_${Date.now()}`;
+        isSimulated = true;
+      }
 
       const res = await fetch(`/api/orders/${order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nextState,
-          signature: simSig,
-          signer: role === 'supplier' ? order.supplierWallet : order.buyerWallet,
+          signature: realSignature,
+          signer: anchorWallet ? anchorWallet.publicKey.toBase58() : (role === 'supplier' ? order.supplierWallet : order.buyerWallet),
           action: actionName,
-          isSimulated: true,
+          isSimulated,
         }),
       });
 

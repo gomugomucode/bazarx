@@ -2,9 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { Product } from '@/lib/types';
-import { deriveOrderPda, shortenAddress, DEVNET_USDC_MINT, getExplorerTxUrl } from '@/lib/solana';
+import {
+  deriveOrderPda,
+  deriveConfigPda,
+  shortenAddress,
+  DEVNET_USDC_MINT,
+  getExplorerTxUrl,
+  getConnection,
+  getAnchorProgram,
+} from '@/lib/solana';
+import { BN } from '@coral-xyz/anchor';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import {
   ShieldCheck,
   MapPin,
@@ -21,6 +31,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { publicKey, connected } = useWallet();
+  const anchorWallet = useAnchorWallet();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,13 +94,53 @@ export default function ProductDetailPage() {
 
       // Derive Order PDA
       let orderPdaString = 'PDA_Pending';
-      if (buyerPubkey) {
+      let realSignature = '';
+      let isSimulated = true;
+
+      if (buyerPubkey && anchorWallet) {
+        try {
+          const connection = getConnection();
+          const program = getAnchorProgram(connection, anchorWallet);
+          const [configPda] = deriveConfigPda();
+          const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
+          orderPdaString = orderPda.toBase58();
+
+          // Amount in micro-USDC (6 decimals)
+          const amountMicroUsdc = new BN(totalAmountUsdc).mul(new BN(1_000_000));
+          const supplierPubkey = new PublicKey(product.supplierWallet);
+
+          // Submit real Anchor transaction to Solana Devnet
+          const txSig = await program.methods
+            .createOrder(
+              new BN(orderIdNumber),
+              supplierPubkey,
+              DEVNET_USDC_MINT,
+              amountMicroUsdc
+            )
+            .accounts({
+              buyer: buyerPubkey,
+              config: configPda,
+              order: orderPda,
+              systemProgram: SystemProgram.programId,
+            })
+            .rpc();
+
+          realSignature = txSig;
+          isSimulated = false;
+        } catch (chainErr: any) {
+          console.warn('Devnet transaction rejected or program not deployed yet, falling back to simulated demo:', chainErr);
+          const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
+          orderPdaString = orderPda.toBase58();
+          realSignature = `simulated_create_ord_${orderIdNumber}`;
+          isSimulated = true;
+        }
+      } else if (buyerPubkey) {
         const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
         orderPdaString = orderPda.toBase58();
+        realSignature = `simulated_create_ord_${orderIdNumber}`;
+      } else {
+        realSignature = `simulated_create_ord_${orderIdNumber}`;
       }
-
-      // Explicitly mark as simulated demo transaction until Devnet Anchor deployment
-      const simulatedTx = `simulated_create_ord_${orderIdNumber}`;
 
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -101,9 +152,9 @@ export default function ProductDetailPage() {
           buyerName: 'Kathmandu Wholesale Retailers Ltd',
           shippingAddress,
           orderPda: orderPdaString,
-          signature: simulatedTx,
+          signature: realSignature,
           blockchainOrderId: orderIdNumber,
-          isSimulated: true,
+          isSimulated,
         }),
       });
 

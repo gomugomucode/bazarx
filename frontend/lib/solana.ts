@@ -1,5 +1,7 @@
-import { PublicKey, Connection, clusterApiUrl } from '@solana/web3.js';
-import { BN } from '@coral-xyz/anchor';
+import { PublicKey, Connection, clusterApiUrl, SystemProgram } from '@solana/web3.js';
+import { Program, AnchorProvider, BN, Idl } from '@coral-xyz/anchor';
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import bazaarxIdl from '@/idl/bazaarx.json';
 
 // BazaarX Program ID (matching target/deploy/bazaarx-keypair.json)
 export const PROGRAM_ID_STRING = 'BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN';
@@ -14,6 +16,17 @@ export const RPC_ENDPOINT = process.env.NEXT_PUBLIC_RPC_ENDPOINT || clusterApiUr
 export const getConnection = () => {
   return new Connection(RPC_ENDPOINT, 'confirmed');
 };
+
+/**
+ * Creates an Anchor Program instance using a connected wallet adapter.
+ */
+export function getAnchorProgram(connection: Connection, wallet: any): Program {
+  const provider = new AnchorProvider(connection, wallet, {
+    preflightCommitment: 'confirmed',
+    commitment: 'confirmed',
+  });
+  return new Program(bazaarxIdl as Idl, provider);
+}
 
 /**
  * Derives the global Config PDA
@@ -44,7 +57,7 @@ export function deriveOrderPda(
 }
 
 /**
- * Derives the Escrow Token Vault PDA (for Day-2 onwards)
+ * Derives the Escrow Token Vault PDA
  * Seeds: ["vault", orderPda]
  */
 export function deriveVaultPda(
@@ -55,6 +68,44 @@ export function deriveVaultPda(
     [Buffer.from('vault'), orderPda.toBuffer()],
     programId
   );
+}
+
+/**
+ * Derives the Associated Token Account (ATA) for a given owner and mint.
+ */
+export function getAssociatedTokenAccount(owner: PublicKey, mint: PublicKey = DEVNET_USDC_MINT): PublicKey {
+  return getAssociatedTokenAddressSync(mint, owner);
+}
+
+/**
+ * Queries an on-chain Order account directly from Solana Devnet.
+ */
+export async function fetchOnChainOrder(orderPda: PublicKey, connection: Connection = getConnection()) {
+  try {
+    const provider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
+    const program = new Program(bazaarxIdl as Idl, provider);
+    const orderData = await (program.account as any).order.fetch(orderPda);
+    return orderData;
+  } catch (err) {
+    console.warn('Could not fetch on-chain order account:', err);
+    return null;
+  }
+}
+
+/**
+ * Queries the global on-chain Config account from Solana Devnet.
+ */
+export async function fetchOnChainConfig(connection: Connection = getConnection()) {
+  try {
+    const provider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
+    const program = new Program(bazaarxIdl as Idl, provider);
+    const [configPda] = deriveConfigPda();
+    const configData = await (program.account as any).config.fetch(configPda);
+    return configData;
+  } catch (err) {
+    console.warn('Could not fetch on-chain config account:', err);
+    return null;
+  }
 }
 
 /**
