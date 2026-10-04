@@ -3,6 +3,9 @@ import { getOrders, addOrder, getProductById } from '@/lib/store';
 import { Order, TransactionRecord } from '@/lib/types';
 import { DEVNET_USDC_MINT } from '@/lib/solana';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role');

@@ -24,7 +24,7 @@ export default function SupplierDashboardPage() {
   useEffect(() => {
     async function fetchSupplierOrders() {
       try {
-        const res = await fetch('/api/orders');
+        const res = await fetch('/api/orders', { cache: 'no-store' });
         const data = await res.json();
         if (data.success) {
           setOrders(data.orders);
@@ -145,13 +145,25 @@ export default function SupplierDashboardPage() {
                             ? 'bg-blue-600 hover:bg-blue-500 text-white'
                             : ord.state === 'Funded'
                             ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                            : ord.state === 'Delivered'
+                            ? 'bg-teal-600 hover:bg-teal-500 text-white'
+                            : ord.state === 'Completed'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold hover:bg-emerald-100'
                             : 'bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700'
                         }`}
                       >
                         {ord.state === 'Created'
                           ? 'Sign Accept'
+                          : ord.state === 'Accepted'
+                          ? 'Awaiting Funding'
                           : ord.state === 'Funded'
                           ? 'Sign Ship'
+                          : ord.state === 'Shipped'
+                          ? 'In Transit'
+                          : ord.state === 'Delivered'
+                          ? 'Release Payment'
+                          : ord.state === 'Completed'
+                          ? 'Completed ✓'
                           : 'Inspect Flow'}
                         <ArrowRight className="w-3 h-3" />
                       </Link>
