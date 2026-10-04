@@ -20,7 +20,7 @@ jobs:
       - name: Install Solana CLI
         run: |
           sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-          echo "/root/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
 
       - name: Setup Keypairs and Binary
         run: |
@@ -33,7 +33,7 @@ jobs:
 
       - name: Verify Binary and Balance
         run: |
-          export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           ls -la target/deploy/
           solana --version
           solana address -k target/deploy/bazaarx-keypair.json
@@ -42,7 +42,7 @@ jobs:
 
       - name: Deploy to Solana Devnet
         run: |
-          export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           solana program deploy target/deploy/bazaarx.so \
             --program-id target/deploy/bazaarx-keypair.json \
             --keypair target/deploy/deployer-keypair.json \
@@ -50,5 +50,5 @@ jobs:
 
       - name: Verify On-Chain Deployment
         run: |
-          export PATH="/root/.local/share/solana/install/active_release/bin:$PATH"
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
           solana program show BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN --url https://api.devnet.solana.com
