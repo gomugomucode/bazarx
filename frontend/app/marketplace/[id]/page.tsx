@@ -128,18 +128,18 @@ export default function ProductDetailPage() {
           realSignature = txSig;
           isSimulated = false;
         } catch (chainErr: any) {
-          console.warn('Devnet transaction rejected or program not deployed yet, falling back to simulated demo:', chainErr);
-          const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
-          orderPdaString = orderPda.toBase58();
-          realSignature = `simulated_create_ord_${orderIdNumber}`;
-          isSimulated = true;
+          console.error('Solana Devnet transaction error:', chainErr);
+          const isUserRejected = chainErr.message?.toLowerCase().includes('reject') || chainErr.message?.toLowerCase().includes('cancel');
+          setErrorMsg(isUserRejected ? 'Transaction cancelled by user.' : `On-chain transaction error: ${chainErr.message || 'Transaction failed on Devnet'}`);
+          setCreating(false);
+          return;
         }
       } else if (buyerPubkey) {
         const [orderPda] = deriveOrderPda(buyerPubkey, orderIdNumber);
         orderPdaString = orderPda.toBase58();
-        realSignature = `simulated_create_ord_${orderIdNumber}`;
+        realSignature = `preview_mode_${orderIdNumber}`;
       } else {
-        realSignature = `simulated_create_ord_${orderIdNumber}`;
+        realSignature = `preview_mode_${orderIdNumber}`;
       }
 
       const res = await fetch('/api/orders', {

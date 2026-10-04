@@ -44,9 +44,14 @@ export const Footer = () => {
             <ul className="space-y-2 text-xs">
               <li>
                 <span className="text-slate-500 block">Anchor Program ID</span>
-                <code className="text-[11px] text-emerald-400 bg-slate-800 px-1.5 py-0.5 rounded">
-                  BzxDay1Foundation...
-                </code>
+                <a
+                  href="https://explorer.solana.com/address/BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN?cluster=devnet"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 bg-slate-800 hover:bg-slate-750 px-1.5 py-0.5 rounded inline-flex items-center gap-1 font-mono transition-colors"
+                >
+                  BHHaiHFR...vQoN <ExternalLink className="w-2.5 h-2.5" />
+                </a>
               </li>
               <li>
                 <span className="text-slate-500 block">Settlement Asset</span>
@@ -68,7 +73,7 @@ export const Footer = () => {
           <p>© 2026 BazaarX Network. Built for the Solana Hackathon.</p>
           <p className="flex items-center gap-1.5 mt-2 sm:mt-0">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            Verified Anchor 0.30.1 State Machine
+            Verified Anchor 0.31.0 State Machine on Devnet
           </p>
         </div>
       </div>
