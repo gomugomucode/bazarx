@@ -364,11 +364,12 @@ export async function reconcileOrderOnChain(
   if (['Funded', 'Shipped', 'Delivered'].includes(chainState)) {
     expectedVaultBalance = onChainAmount;
   }
-  const vaultMatch = vaultBalance !== null && Math.abs(vaultBalance - expectedVaultBalance) < 0.01;
+  const effectiveVaultBalance = vaultBalance ?? 0;
+  const vaultMatch = Math.abs(effectiveVaultBalance - expectedVaultBalance) < 0.01;
 
-  if (!vaultMatch && vaultBalance !== null) {
+  if (!vaultMatch) {
     discrepancies.push(
-      `Escrow vault balance unexpected: Current vault balance is ${vaultBalance} USDC, expected ${expectedVaultBalance} USDC for state ${chainState}.`
+      `Escrow vault balance unexpected: Current vault balance is ${effectiveVaultBalance} USDC, expected ${expectedVaultBalance} USDC for state ${chainState}.`
     );
   }
 
