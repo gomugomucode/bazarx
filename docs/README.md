@@ -8,10 +8,10 @@ Welcome to the comprehensive documentation suite for **BazaarX**, Nepal's progra
 
 | Document | Description |
 | :--- | :--- |
-| 📋 [**Requirements & Specifications**](./REQUIREMENTS.md) | Product context, wholesale trust problem in Nepal, B2B fintech wallet specifications, and 6-stage lifecycle state machine. |
-| ✅ [**Work Done & Timeline Log**](./WORK_DONE.md) | Granular audit changelog, execution timestamps, reality audit, completed milestones, and list of security issues solved. |
-| 🛡️ [**Security & Cryptographic Audit**](./SECURITY.md) | Smart contract threat model, PDA seeds validation, token constraints, 7 on-chain exploit test results, and frontend anti-phishing controls. |
-| 🏛️ [**System Architecture**](./ARCHITECTURE.md) | Topology diagram, Next.js frontend, Express backend, Solana Anchor smart contract, and Vercel multi-service routing. |
+| 📋 [**Requirements & Specifications**](./REQUIREMENTS.md) | Product context, wholesale trust problem in Nepal, Auth-First B2B onboarding, decoupled settlement wallet, and 6-stage lifecycle state machine. |
+| ✅ [**Work Done & Timeline Log**](./WORK_DONE.md) | Granular audit changelog, execution timestamps, Phases 1–10, operational error resolutions, and 18/18 acceptance test results. |
+| 🛡️ [**Security & Cryptographic Audit**](./SECURITY.md) | Smart contract threat model, 7 on-chain exploit test results, Next.js Edge Middleware route protection, and 18-point automated acceptance test suite. |
+| 🏛️ [**System Architecture**](./ARCHITECTURE.md) | Authentication-First B2B topology, Next.js Edge Middleware, Express backend, and Solana Anchor escrow smart contract. |
 | 🚀 [**Deployment Guide**](./DEPLOYMENT.md) | Step-by-step procedures for Solana Devnet verification, real verified transactions log, and local development troubleshooting. |
 
 ---

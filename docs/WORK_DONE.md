@@ -85,9 +85,63 @@ BazaarX underwent a comprehensive reality audit and hardening sprint to transiti
   * Resolved Next.js dev server cache collisions and confirmed all 7 core routes return `HTTP 200 OK`.
   * Configured `nodemon` in backend with `backend/nodemon.json` and added Webpack development `watchOptions` polling to `frontend/next.config.js` for instant automatic code change reloading.
 
+### Phase 6: Unified B2B Dashboard Implementation
+* **Timestamp:** `2026-10-04T12:30:00Z`
+* **Milestone:** Unified `/dashboard` with dynamic role presentation:
+  * Consolidated fragmented buyer/supplier views into a single high-performance dashboard (`app/dashboard/page.tsx`).
+  * Implemented `DashboardHeader.tsx` featuring organization identity, active role badge, and verification status.
+  * Preserved full backward compatibility for legacy `/dashboard/buyer` and `/dashboard/supplier` bookmarks via server-side redirect handlers.
+  * Designed KPI summary widgets: Active Consignments, In Transit, Awaiting Action, Total Escrow Value.
+
+### Phase 7: Transition to Authentication-First Architecture
+* **Timestamp:** `2026-10-04T15:20:00Z`
+* **Milestone:** Redesign from wallet-first barrier to B2B enterprise authentication:
+  * **Public Navbar Redesign:** Clean logged-out navigation (`BazaarX`, `Marketplace`, `How It Works`, `Login`, `Register`). Removed "Connect Wallet" from being the primary authentication entrypoint.
+  * **Login Interface (`/login`):** B2B email + password authentication issuing secure HTTP-only `bazarx_session` cookies (`SameSite=Lax`, `Max-Age=7 days`).
+  * **Registration Flow (`/register`):** Two-path registration (Buyer vs. Supplier). Explicitly prohibited `ADMIN` self-registration (`HTTP 400`).
+  * **Role-Aware Redirection:**
+    * Buyers routed to `/dashboard?role=BUYER`.
+    * Suppliers routed to `/dashboard?role=SUPPLIER`.
+    * Dual-role accounts routed to unified dashboard with role switcher.
+  * **Business Profile (`/profile`):** Management of organization details, masked tax credentials (`maskedPan: •••••••1234`, `maskedCitizenship: •••••••5678`), and linked settlement addresses.
+  * **Decoupled Settlement Wallet:** Connected wallet is framed as the **Settlement Wallet** used only when signing on-chain transactions; unlinked or disconnected wallets do not block dashboard or order visibility.
+  * **Password Salt Reconciliation:** Reconciled PBKDF2 hash generation between backend store and frontend proxy to ensure instantaneous authentication for pre-seeded test accounts.
+
+### Phase 8: Server-Side Route Hardening & Edge Middleware
+* **Timestamp:** `2026-10-04T16:15:00Z`
+* **Milestone:** Full server-side route enforcement via Next.js Edge Middleware (`frontend/middleware.ts`):
+  * **Unauthenticated Route Interception:** `GET /dashboard`, `GET /profile`, `GET /orders/[id]`, and `GET /admin` return immediate **`HTTP 307 Temporary Redirect`** to `/login?redirect=...`. Zero private order data or dashboard HTML is leaked to unauthenticated HTTP requests.
+  * **Admin Server-Side Authorization:** Non-admin accounts attempting `GET /admin` are rejected at the edge with **`HTTP 403 Forbidden`** (server-rendered Administrator Access Denied view).
+  * **Role Tampering Defeated:** Query parameters like `?role=SUPPLIER` or `?role=ADMIN` on Buyer accounts are strictly overridden by authenticated server session roles.
+  * **API Authorization:** `GET /api/orders` and `GET /api/orders/:id` require authenticated sessions and restrict results strictly to the authenticated buyer, designated supplier, or admin. Cross-account order requests return `HTTP 403`.
+
+### Phase 9: Automated 18-Scenario Acceptance Test Suite
+* **Timestamp:** `2026-10-04T16:20:00Z`
+* **Milestone:** Created and executed comprehensive automated test suite (`scripts/test-acceptance.mjs`):
+  * Validated all 18 security and route scenarios:
+    1. Public navbar visibility (Login/Register present, Dashboard/Connect Wallet absent) ➔ **PASS**
+    2. Logged-out `/dashboard` HTTP 307 redirect ➔ **PASS**
+    3. Logged-out `/profile` HTTP 307 redirect ➔ **PASS**
+    4. Logged-out `/orders/<id>` HTTP 307 redirect ➔ **PASS**
+    5. Logged-out `/admin` HTTP 307 redirect ➔ **PASS**
+    6. Buyer login & session cookie issuance ➔ **PASS**
+    7. Supplier login & session cookie issuance ➔ **PASS**
+    8. Admin login & session cookie issuance ➔ **PASS**
+    9. Buyer role containment under `?role=SUPPLIER` ➔ **PASS**
+    10. Authenticated Buyer access to `/admin` denied with HTTP 403 ➔ **PASS**
+    11. Authenticated Supplier access to `/admin` denied with HTTP 403 ➔ **PASS**
+    12. Unauthenticated order API access returns HTTP 401 ➔ **PASS**
+    13. Cross-user order request denied with HTTP 403 ➔ **PASS**
+    14. ADMIN self-registration attempt rejected with HTTP 400 ➔ **PASS**
+    15. Duplicate settlement wallet claim rejected with HTTP 400 ➔ **PASS**
+    16. Non-Base58 wallet format rejected with HTTP 400 ➔ **PASS**
+    17. PII privacy check (PAN/citizenship masked and absent from public APIs) ➔ **PASS**
+    18. Logout invalidation & route re-locking ➔ **PASS**
+  * **Overall Acceptance Score:** **18/18 PASSED (100%)**.
+
 ---
 
-## 3. Security Issues Identified & Solved
+## 3. Security & Operational Issues Identified & Solved
 
 | Category | Issue Identified | Resolution Implemented | Verification |
 | :--- | :--- | :--- | :--- |
@@ -98,19 +152,27 @@ BazaarX underwent a comprehensive reality audit and hardening sprint to transiti
 | **Smart Contract** | Illegal state transitions (skipping steps) | Strict enum match guards on every instruction | Error `6004` on Devnet |
 | **Smart Contract** | Unauthorized delivery confirmation | `has_one = buyer` check prevents third-party confirmation | Error `6004` on Devnet |
 | **Smart Contract** | Premature payment release | Vault PDA release check requires `state == Delivered` | Blocked by runtime |
-| **Frontend** | Simulated signature fallbacks in production | Purged all `demo_preview_` and `preview_mode_` code paths | TypeScript & code audit |
-| **Frontend** | Misleading zero-balance handling | Displays exact `0.00 USDC` and links to official Circle Faucet | Manual QA & screenshots |
-| **Frontend** | Insecure external window opens | Applied `rel="noopener noreferrer"` across all Explorer links | Code review |
-| **Frontend** | Exposing raw program error dumps | Mapped user rejections and balances to clean human-readable text | Code review |
-| **DevOps / Port** | `EADDRINUSE: :::3000` port contention | Stopped background daemon tasks, cleared `.next`, restarted cleanly | Terminal verified |
+| **Application Auth** | Client-side-only auth redirection | Next.js Edge Middleware (`middleware.ts`) enforcing `HTTP 307` and `HTTP 403` | Automated acceptance suite (Tests 2–5, 10–11) |
+| **Application Auth** | Role tampering via `?role=...` query | Role resolved strictly from verified server-side `user.roles` | Automated acceptance suite (Test 9) |
+| **Application Auth** | Cross-account order data leakage | Server-side ownership verification (`isBuyer \|\| isSupplier \|\| isAdmin`) | Automated acceptance suite (Tests 12, 13) |
+| **Application Auth** | ADMIN self-registration privilege escalation | Server-side role validation rejecting non-standard roles (`HTTP 400`) | Automated acceptance suite (Test 14) |
+| **Application Auth** | Settlement wallet squatting / hijacking | Uniqueness check blocking association of already-linked addresses | Automated acceptance suite (Test 15) |
+| **Application Auth** | PII leakage on blockchain / logs | Strict masking of PAN and Citizenship numbers; zero PII sent to Solana | Automated acceptance suite (Test 17) |
+| **DevOps / Port** | `EADDRINUSE: :::3000` port collision | Identified and terminated stale node processes; documented clean recovery | Process verified |
+| **DevOps / Cache** | Webpack runtime `Cannot find module './161.js'` | Desynchronization between `next build` and running `next dev` resolved | Clean dev server restart |
 
 ---
 
 ## 4. Current System Status
 
-* **Solana Program:** Deployed, initialized, and verified on Solana Devnet.
+* **Solana Program:** Deployed, initialized, and verified on Solana Devnet (`BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`).
 * **Order #80024:** Live in `Accepted` state (`GivpLzmmEH5M2WVbWqbjGRsSSSZxTvcGLFoC6rvwWFUm`).
-* **TypeScript:** `npx tsc --noEmit` passes with 0 errors.
-* **Production Build:** `npm run build` passes with 0 errors.
-* **Routes:** All 7 application routes return HTTP 200 OK.
-* **Escrow Funding:** Ready for live funding when wallet has $\ge 1.00$ Devnet USDC.
+* **TypeScript Compilation:**
+  * Backend: `npx tsc --noEmit` $\longrightarrow$ **0 errors**.
+  * Frontend: `npx tsc --noEmit` $\longrightarrow$ **0 errors**.
+* **Production Build:** `npm run build` compiles **14/14 static & dynamic pages + Edge Middleware** with **0 errors**.
+* **Acceptance Test Suite:** `node scripts/test-acceptance.mjs` $\longrightarrow$ **18/18 PASSED**.
+* **Pre-Seeded Demo Credentials:**
+  * Buyer: `buyer@bazarx.com` / `password123` (Kathmandu Valley Wholesale Buyer)
+  * Supplier: `supplier@bazarx.com` / `password123` (Himalayan Organic Farms Pvt Ltd)
+  * Admin: `admin@bazarx.com` / `password123` (Protocol Administrator)

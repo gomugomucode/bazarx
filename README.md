@@ -1,8 +1,8 @@
 # BazaarX
 
-> **Nepal's programmable B2B wholesale settlement marketplace on Solana Devnet.**
+> **Nepal's non-custodial B2B wholesale marketplace with Solana escrow settlement.**
 
-BazaarX facilitates trust-minimized on-chain wholesale trade between commodity buyers (retailers, distributors, agro-processors) and suppliers (millers, farmers, wholesale producers). By combining an off-chain discovery marketplace with non-custodial Solana escrow smart contracts, BazaarX eliminates counterparty default risk without requiring central exchange custody.
+BazaarX combines an off-chain enterprise B2B discovery and ordering platform with non-custodial Solana Anchor escrow smart contracts. By decoupling business onboarding and order management from blockchain signing, normal business buyers and suppliers can discover commodities, negotiate agreements, and manage consignments, connecting their Solana settlement wallet only when an on-chain transaction signature is required.
 
 ---
 
@@ -17,11 +17,27 @@ BazaarX facilitates trust-minimized on-chain wholesale trade between commodity b
 
 ---
 
+## 🏗️ New Product Principle: Authentication-First B2B Architecture
+
+BazaarX does **not** force a wallet connection as the entry barrier to the application:
+
+```text
+LOGIN / REGISTER FIRST ➔ BUSINESS PROFILE ➔ ROLE RESOLUTION ➔ DASHBOARD ➔ WALLET WHEN SIGNING
+```
+
+1. **Visit BazaarX**: Browse public wholesale commodities and corridors without connecting a wallet.
+2. **Login / Register**: Create an authenticated business account as a **Buyer** or **Supplier** with email and password.
+3. **Complete Profile**: Enter business name, contact info, and tax registration details (masked for privacy).
+4. **Enter Unified Dashboard**: Access active orders, fulfillment metrics, and trade analytics without an initial wallet prompt.
+5. **Connect Settlement Wallet**: Prompted only when an on-chain action requires signing (e.g. Funding Escrow, Shipping, Confirming Receipt).
+
+---
+
 ## 🛡️ Core Financial Principle: Non-Custodial Settlement
 
 **BazaarX servers and databases NEVER take custody of buyer or supplier funds.**
 
-* **Off-Chain Layer (Next.js + Express + Prisma)**: Manages catalog search, product specifications, inventory listings, order caching, and supplier contact metadata.
+* **Application Layer (Next.js + Express)**: Manages catalog search, business profiles, session authorization, and order caching.
 * **On-Chain Layer (Solana Anchor Smart Contract)**: Holds exclusive financial authority, governs Program-Derived Address (PDA) escrow vaults, enforces state machine invariants, and executes automated payment release upon verified delivery.
 
 ---
@@ -34,47 +50,78 @@ BazaarX facilitates trust-minimized on-chain wholesale trade between commodity b
 [Completed] <──(Program releases payment)── [Delivered] <──(Buyer confirms)─ [Shipped]
 ```
 
-1. **Created**: Buyer initiates order with quantity, price, and designated supplier, deriving an immutable Order PDA.
-2. **Accepted**: Designated supplier cryptographically accepts the order, committing stock and delivery timeline.
-3. **Funded**: Buyer locks wholesale funds into the program-owned escrow vault PDA (`["vault", order_pda]`).
+1. **Created**: Buyer places wholesale order with quantity and delivery warehouse, deriving an immutable Order PDA.
+2. **Accepted**: Designated supplier cryptographically signs acceptance, committing inventory and delivery timeline.
+3. **Funded**: Buyer locks wholesale USDC into the program-owned escrow vault PDA (`["vault", order_pda]`).
 4. **Shipped**: Supplier dispatches freight along Nepal trade corridors (Birgunj-Kathmandu, Butwal-Pokhara).
-5. **Delivered**: Buyer verifies goods at receiving warehouse and cryptographically confirms receipt.
+5. **Delivered**: Buyer inspects consignment at warehouse depot and cryptographically signs delivery confirmation.
 6. **Completed**: Smart contract triggers automated CPI transfer of USDC from the vault directly to the supplier wallet.
 
 ---
 
-## 🔒 Security Architecture & Exploit Defense
+## 🔒 Security Architecture & Automated Test Verification
 
-All 7 primary smart contract attack vectors were tested directly against the deployed program on Solana Devnet (`scripts/test_security_devnet.ts`) and proven **BLOCKED ON-CHAIN**:
+All security requirements and edge cases are validated by an automated acceptance test suite (`scripts/test-acceptance.mjs`):
 
-1. **Zero-Amount Orders**: Blocked (`BazaarXError::InvalidAmount` `6001`).
-2. **Self-Trading (buyer == supplier)**: Blocked (`BazaarXError::InvalidSupplier` `6008`).
-3. **Arbitrary / Fake Token Mint Substitution**: Blocked (`BazaarXError::InvalidMint` `6002`).
-4. **Unauthorized Order Acceptance**: Blocked by `has_one = supplier` check (`6003`).
-5. **State Skipping**: Blocked by strict state match guards (`6004`).
-6. **Unauthorized Delivery Confirmation**: Blocked by `has_one = buyer` check (`6004`).
-7. **Premature Payment Release**: Blocked by Anchor runtime and state checks.
+* **Server-Side Route Protection**: Next.js Edge Middleware (`frontend/middleware.ts`) intercepts unauthenticated requests to `/dashboard`, `/profile`, `/orders/[id]`, and `/admin` with immediate `HTTP 307` redirects.
+* **Admin Access Control**: Non-admin users attempting to access `/admin` receive a server-enforced `HTTP 403 Forbidden` response.
+* **Role Tampering Neutralization**: Query parameters like `?role=SUPPLIER` or `?role=ADMIN` on Buyer accounts are strictly overridden by authenticated server session roles.
+* **Smart Contract Exploit Defense**: All 7 primary smart contract attack vectors (zero-amount, self-trading, fake mints, unauthorized acceptance/shipping/delivery, premature payout) are **BLOCKED ON-CHAIN** on Solana Devnet.
+* **Acceptance Suite Score**: **18/18 Tests Passed (100%)**.
 
-### Frontend Hardening
-* **Purged Simulated Signatures**: All mock preview signature fallbacks (`demo_preview_...`, `preview_mode_...`) were eliminated. Real transactions strictly require a connected Solana wallet.
-* **Pre-Flight Client Checks**: Validates SOL gas balance ($\ge 0.001\text{ SOL}$) and USDC balance before transaction broadcast.
-* **Standardized Error Messaging**: Mapped wallet rejections to `"Transaction cancelled"`, and balance deficits to `"Insufficient USDC balance"` and `"Insufficient SOL for transaction fees"`.
-* **Anti-Phishing**: All external Solana Explorer and faucet links enforce `target="_blank" rel="noopener noreferrer"`.
+```bash
+# Run the acceptance test suite
+node scripts/test-acceptance.mjs
+```
 
 ---
 
-## 📱 B2B Fintech Wallet Experience
+## 👥 Pre-Seeded Demo Credentials
 
-* **Disconnected**: Prominent B2B `[ Connect Wallet ]` button opening standard Solana wallet selector.
-* **Connecting**: Anti-double-click disabled state displaying `Connecting...` with animated spinner.
-* **Connected**: Real-time account pill displaying `[ 0.143 SOL | 6VBK...CEM1 | DEVNET ]`.
-* **Account Dropdown**:
-  * Truncated address with instant one-click copy (`"Copied!"` indicator).
-  * Direct Devnet Explorer link (`?cluster=devnet`).
-  * Live SOL and Devnet USDC balance queries directly from Solana RPC with manual refresh button.
-  * Informational Circle Devnet Faucet link for wallets with `0.00 USDC`.
-  * Safe Disconnect action.
-* **Responsive Viewport Support**: Tested and verified at 375px (mobile), 768px (tablet), 1280px (desktop), and 1920px (widescreen).
+To experience the platform across all three persona roles:
+
+| Role | Email | Password | Organization | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Buyer** | `buyer@bazarx.com` | `password123` | Kathmandu Valley Wholesale Buyer | Verified |
+| **Supplier** | `supplier@bazarx.com` | `password123` | Himalayan Organic Farms Pvt Ltd | Verified |
+| **Admin** | `admin@bazarx.com` | `password123` | Protocol Administrator | Verified |
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+* Node.js v18+
+* Solana CLI tools & Anchor v0.31 (optional, for contract recompilation)
+* Phantom / Solflare wallet configured for **Solana Devnet**
+
+### 2. Installation
+```bash
+# Clone the repository
+git clone https://github.com/your-org/bazarx.git
+cd bazarX
+
+# Install dependencies
+npm install
+cd frontend && npm install
+cd ../backend && npm install
+cd ..
+```
+
+### 3. Running Locally
+Run both frontend and backend dev servers:
+
+```bash
+# Terminal 1 - Backend (port 5000)
+cd backend
+npm run dev
+
+# Terminal 2 - Frontend (port 3000)
+cd frontend
+npm run dev
+```
+
+Visit [`http://localhost:3000`](http://localhost:3000) in your browser.
 
 ---
 
@@ -82,64 +129,31 @@ All 7 primary smart contract attack vectors were tested directly against the dep
 
 ```text
 bazarX/
-├── docs/                     # Comprehensive documentation suite
-│   ├── ARCHITECTURE.md       # High-level topology, component breakdowns, PDA formulas
+├── docs/                     # Comprehensive architecture and security specs
+│   ├── ARCHITECTURE.md       # High-level topology & PDA derivation formulas
 │   ├── DEPLOYMENT.md         # Verified Devnet transactions & troubleshooting guide
-│   ├── README.md             # Documentation portal index
 │   ├── REQUIREMENTS.md       # Product requirements & 6-stage lifecycle specifications
-│   ├── SECURITY.md           # Smart contract threat model & 7 exploit test results
-│   └── WORK_DONE.md          # Granular implementation timeline & audit changelog
+│   ├── SECURITY.md           # Smart contract threat model & 18 acceptance test results
+│   └── WORK_DONE.md          # Implementation timeline, resolved issues & changelog
 ├── frontend/                 # Next.js 14 App Router (Tailwind CSS, Solana Wallet Adapter)
-│   ├── app/                  # Routes: /marketplace, /orders, /dashboard, /admin
-│   ├── components/           # WalletButton, NetworkStatus, ConfirmModal, TransactionStatus
+│   ├── app/                  # Routes: /marketplace, /orders, /dashboard, /profile, /admin
+│   ├── components/           # Navbar, WalletButton, NetworkStatus, ConfirmModal
+│   ├── middleware.ts         # Edge middleware for server-side route & admin protection
 │   ├── idl/                  # bazaarx.json (compiled Anchor IDL)
-│   ├── lib/                  # solana.ts, useWalletBalance.ts, mockData.ts
+│   ├── lib/                  # solana.ts, AuthContext.tsx, store.ts
 │   └── package.json
 ├── backend/                  # Node.js + Express API Service (port 5000)
-│   ├── src/                  # Routes: /api/products, /api/orders, /health
+│   ├── src/                  # Routes: /api/auth, /api/orders, /api/products
 │   └── package.json
-├── programs/                 # Solana Anchor smart contract (Rust)
-│   └── bazaarx/src/
-│       ├── lib.rs            # Program entry point & instruction routing
-│       ├── errors.rs         # Program error codes
-│       ├── instructions/     # 7 lifecycle instructions
-│       └── state/            # Config (73B) & Order (138B) account structures
-├── scripts/                  # Automated verification & security test scripts
-│   ├── test_security_devnet.ts  # 7-attack exploit test suite
-│   └── e2e_escrow_flow.ts       # End-to-end escrow lifecycle runner
-├── Anchor.toml               # Anchor workspace configuration
-└── vercel.json               # Multi-service edge deployment routing
+├── programs/bazaarx/         # Anchor 0.31 Solana Smart Contract (Rust)
+│   └── src/lib.rs            # On-chain escrow state machine & PDA account logic
+└── scripts/
+    ├── test-acceptance.mjs   # 18-scenario automated authentication & route test suite
+    └── test_security_devnet.ts # On-chain smart contract attack simulation suite
 ```
 
 ---
 
-## 🚀 Running Locally
+## 📄 License & Hackathon Notice
 
-### 1. Start the Backend API (Port 5000)
-```powershell
-cd backend
-npm install
-npm run dev
-```
-
-### 2. Start the Frontend Application (Port 3000)
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-Visit [http://localhost:3000](http://localhost:3000) in your browser. Ensure your Solana wallet extension (Phantom or Solflare) is set to **Solana Devnet**.
-
----
-
-## 🧪 Verification Commands
-
-```powershell
-# Verify TypeScript compilation (Frontend)
-cd frontend
-npx tsc --noEmit
-
-# Verify Production Build (Frontend)
-npm run build
-```
+Built for the **Solana Hackathon 2026**. Licensed under the [MIT License](LICENSE).

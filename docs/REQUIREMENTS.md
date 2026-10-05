@@ -36,19 +36,30 @@ In Nepal's wholesale economy (e.g. agricultural commodities, cooking oils, grain
 
 ## 3. Functional Requirements
 
-### 3.1. Wallet Experience (B2B Fintech Standard)
-* **State A (Disconnected)**: Prominent `[ Connect Wallet ]` trigger that opens the standard Solana wallet modal without page redirects.
-* **State B (Connecting)**: Disabled `Connecting...` button with an active spinner to prevent repeated clicks.
+### 3.1. Authentication-First Onboarding & Access Control
+* **Public Discovery**: Visitors can browse wholesale commodities and freight corridors without connecting a wallet.
+* **Enterprise Authentication**: Email + PBKDF2 salted password authentication issuing secure HTTP-only `bazarx_session` cookies.
+* **Role Selection**: Two public registration personas (**Buyer** and **Supplier**). Internal `ADMIN` role registration is strictly forbidden.
+* **Server-Side Route Protection**: Next.js Edge Middleware intercepts unauthenticated visits to `/dashboard`, `/profile`, `/orders/[id]`, and `/admin`, issuing immediate `HTTP 307` redirects to `/login`.
+* **Server-Side Admin Authorization**: Non-admin users attempting to access `/admin` receive a server-side `HTTP 403 Forbidden` response.
+* **Role Containment**: Query parameters cannot elevate permissions beyond the authenticated session's verified `user.roles`.
+
+### 3.2. Decoupled Settlement Wallet Experience
+* **Settlement Signer**: The connected Solana wallet acts strictly as the transaction signer for on-chain settlement rather than the login credential.
+* **Non-Blocking Dashboard Access**: If a logged-in user has not connected a Solana wallet, dashboard access is not blocked; an informational notice prompts them to connect when ready to sign on-chain actions.
+* **State A (Disconnected)**: Clean `[ Connect Wallet ]` trigger that opens the Solana wallet modal.
+* **State B (Connecting)**: Disabled `Connecting...` state preventing duplicate submission.
 * **State C (Connected)**: Displays `[ 0.143 SOL | 6VBK...CEM1 | DEVNET ]` with active pulse indicator.
 * **Account Dropdown**:
-  * Truncated public key with one-click copy (`"Copied!"` indicator with clipboard error fallback).
+  * Truncated public key with one-click copy (`"Copied!"` indicator).
   * Direct link to Solana Explorer using `?cluster=devnet`.
   * Real-time query of native SOL balance and Devnet USDC token balance with on-demand refresh spinner.
-  * Informational Circle Devnet Faucet link when USDC balance is `0.00` (does not look like a purchase option).
-  * Clean `Disconnect` action and non-custodial trust statement.
+  * Informational Circle Devnet Faucet link when USDC balance is `0.00`.
+  * Safe Disconnect action and non-custodial trust statement.
 
-### 3.2. Order Management & Escrow Funding
+### 3.3. Order Management & Escrow Funding
 * **Order Detail View**: Live Solana RPC synchronization displaying verified on-chain state, Order PDA, settlement token, and vault balance.
+* **Cross-User Data Isolation**: Access to `/orders/[id]` is restricted to the buyer, designated supplier, or admin. Unrelated users receive `HTTP 403 Forbidden`.
 * **Funding Pre-Validation**: Client pre-validates:
   * SOL gas balance ($\ge 0.001\text{ SOL}$) before initiating transaction.
   * USDC balance ($\ge \text{order.amountUsdc}$) before initiating transaction.
@@ -59,10 +70,10 @@ In Nepal's wholesale economy (e.g. agricultural commodities, cooking oils, grain
   * **Action**: `Fund Escrow`.
 * **Transaction Feedback**: 6-stage lifecycle (`ready`, `waiting_approval`, `sending`, `confirming`, `confirmed`, `failed`). Explorer links rendered strictly when real signatures exist.
 
-### 3.3. Wholesale Marketplace Catalog
+### 3.4. Wholesale Marketplace Catalog
 * **Display Fields**: Product Name, Supplier Name, Supplier Location, Wholesale Price (USDC and NPR equivalent), Minimum Order Quantity (MOQ), and Category.
 * **Filters & Search**: Fast client-side category pill filtering and instant keyword search.
-* **Wallet Guard**: Disconnected buyers clicking to order receive an inline `"Wallet Connection Required"` prompt without page redirection.
+* **Authentication Guard**: Unauthenticated visitors attempting to place an order are prompted to sign in or create a business profile before proceeding to on-chain order creation.
 
 ---
 

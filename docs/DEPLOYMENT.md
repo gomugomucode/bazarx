@@ -72,14 +72,34 @@
   Get-NetTCPConnection -LocalPort 3000 | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }
   ```
 
-#### Issue B: `MODULE_NOT_FOUND ./vendor-chunks/@solana.js` or `787.js`
+#### Issue B: `MODULE_NOT_FOUND ./vendor-chunks/@solana.js` or `Cannot find module './161.js'`
 * **Cause:** Running `npm run build` while `npm run dev` was actively running in the same directory overwrote `.next` chunks with production assets.
 * **Resolution:**
   ```powershell
+  # Kill stale next process and restart cleanly
+  Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess -Force
   cd frontend
-  Remove-Item -Recurse -Force .next
   npm run dev
   ```
+
+### 3.4. Running Verification & Acceptance Tests
+
+1. **Type Checking:**
+   ```powershell
+   cd backend ; npx tsc --noEmit
+   cd ../frontend ; npx tsc --noEmit
+   ```
+
+2. **Production Build:**
+   ```powershell
+   cd frontend ; npm run build
+   ```
+
+3. **Automated 18-Scenario Security Acceptance Suite:**
+   ```powershell
+   # With frontend (3000) and backend (5000) running:
+   node scripts/test-acceptance.mjs
+   ```
 
 ---
 

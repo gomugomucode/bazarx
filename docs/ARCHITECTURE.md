@@ -2,116 +2,143 @@
 
 **Target Network:** Solana Devnet  
 **Program ID:** `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`  
-**Architecture Pattern:** Non-Custodial Decentralized Marketplace with Off-Chain Metadata Cache  
+**Architecture Pattern:** Authentication-First B2B Marketplace with Non-Custodial Solana Escrow Settlement  
 
 ---
 
 ## 1. High-Level Architecture Diagram
 
 ```text
-                   ┌──────────────────────────────────────────────┐
-                   │               User / Client                  │
-                   │   Browser with Solana Wallet (Phantom, etc.)  │
-                   └──────────────────────┬───────────────────────┘
-                                          │
-                  ┌───────────────────────┴───────────────────────┐
-                  │          Vercel Multi-Services Edge           │
-                  │   vercel.json (Top-Level Routing & Rewrites)  │
-                  └───────────┬───────────────────────┬───────────┘
-                              │                       │
-                       /(.*)  │                       │  /api/(.*)
-                              ▼                       ▼
-                   ┌─────────────────────┐ ┌─────────────────────┐
-                   │      Frontend       │ │       Backend       │
-                   │   Next.js 14 App    │ │   Express Service   │
-                   │   Tailwind + Lucide │ │   Order/Product API │
-                   │   Anchor Provider   │ │   Prisma Data Store │
-                   └──────────┬──────────┘ └─────────────────────┘
-                              │ (Internal Service Binding: BACKEND_URL)
-                              │
-                              ▼ Direct RPC WebSockets / HTTP
-                   ┌──────────────────────────────────────────────┐
-                   │            Solana Devnet Cluster             │
-                   │                                              │
-                   │  Program ID: BHHaiHFRMyVRqQYp2rdC41DECe...   │
-                   │  ┌────────────────────────────────────────┐  │
-                   │  │ Config PDA: ["config"]                 │  │
-                   │  │ Order PDA:  ["order", buyer, id]       │  │
-                   │  │ Vault PDA:  ["vault", orderPda]        │  │
-                   │  │ SPL Token Program (CPI Transfers)      │  │
-                   │  └────────────────────────────────────────┘  │
-                   └──────────────────────────────────────────────┘
+                               PUBLIC INTERNET
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            ▼                                                   ▼
+  Wholesale Marketplace                                   Authentication
+   (/marketplace, /)                                    (/login, /register)
+   • Public commodity catalog                           • Role Selection (Buyer / Supplier)
+   • Specifications & Pricing                           • Secure PBKDF2 Password Verification
+            │                                                   │
+            │                                                   ▼
+            │                                         HTTP-Only Cookie Session
+            │                                            (bazarx_session)
+            │                                                   │
+            └─────────────────────────┬─────────────────────────┘
+                                      │
+                                      ▼
+                       Next.js 14 Edge Middleware
+                          (frontend/middleware.ts)
+                                      │
+               ┌──────────────────────┴──────────────────────┐
+               │                                             │
+      Authenticated Request                         Unauthenticated Request
+               │                                             │
+               ▼                                             ▼
+       Protected Routes                              HTTP 307 Redirect
+ • Unified /dashboard                                  to /login?redirect=...
+ • /profile (masked PII)
+ • /orders/[id] (party-restricted)
+ • /admin (server-enforced 403 for non-admins)
+               │
+               ▼
+   Connect Settlement Wallet
+ (Prompted ONLY when signing required)
+               │
+               ▼ Direct WebSockets / RPC
+┌─────────────────────────────────────────────────────────────┐
+│                    Solana Devnet Cluster                    │
+│                                                             │
+│  Anchor Program: BHHaiHFRMyVRqQYp2rdC41DECeNBE544...        │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Config PDA: ["config"]                                │  │
+│  │ Order PDA:  ["order", buyer_pubkey, order_id_bytes]   │  │
+│  │ Vault PDA:  ["vault", order_pda]                      │  │
+│  │ SPL Token Program (CPI Transfers for USDC Devnet)     │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Component Descriptions
+## 2. Architectural Separation of Concerns
 
-### 2.1. Frontend (`frontend/`)
+BazaarX enforces a strict separation between three distinct operational domains:
+
+| Domain | Authority | Responsibilities | Key Security Boundary |
+| :--- | :--- | :--- | :--- |
+| **Application Authentication** | Next.js Server & Backend Express | User credentials, sessions (`bazarx_session`), organization profiles, role membership (`BUYER`, `SUPPLIER`, `ADMIN`), order indexing. | Never possesses or manages Solana private keys. Cannot fabricate blockchain signatures. |
+| **Edge Route Guard** | Next.js Edge Middleware (`middleware.ts`) | Server-side request interception (`HTTP 307` redirects for unauthenticated users, `HTTP 403` for non-admin `/admin` access). | Executes before React hydration. Prevents unauthorized HTML/JS payload leakage. |
+| **Settlement Signer** | Solana Wallet Adapter (Phantom, Solflare, etc.) | Non-custodial cryptographic signing of Anchor instructions. | Prompted only when a blockchain transaction is ready for signature. |
+| **On-Chain Protocol** | Solana Anchor Smart Contract | Custody of escrow funds in Program-Derived Address (PDA) vaults, validation of state invariants, programmatic payout execution. | Sole financial authority. Backend database changes have zero influence over vault balances. |
+
+---
+
+## 3. Component Breakdown
+
+### 3.1. Frontend (`frontend/`)
 * **Framework:** Next.js 14 (App Router) with React 18, TypeScript, TailwindCSS.
-* **Solana Integration:** `@coral-xyz/anchor`, `@solana/web3.js`, `@solana/wallet-adapter-react`, `@solana/wallet-adapter-react-ui`.
-* **IDL Integration:** Dynamically binds with compiled Anchor IDL (`frontend/idl/bazaarx.json`).
-* **Core Modular Components:**
-  * `WalletButton.tsx`: Non-intrusive B2B button with States A (Disconnected), B (Connecting), and C (Connected). Account dropdown with live balances, 1-click copy, and safe Explorer links.
-  * `NetworkStatus.tsx`: Explicit `SOLANA DEVNET` indicator with cluster mismatch detection.
-  * `ConfirmModal.tsx`: Cryptographic intent verification before high-value escrow transactions.
-  * `TransactionStatus.tsx`: 6-stage lifecycle feedback (`ready`, `waiting_approval`, `sending`, `confirming`, `confirmed`, `failed`).
-  * `Timeline.tsx`: Step-by-step visual progression with on-chain signature verification badges.
-  * `useWalletBalance.ts`: Live balance hook polling native SOL and Devnet USDC ATA directly from Solana RPC.
+* **Edge Middleware (`frontend/middleware.ts`):**
+  * Intercepts `/dashboard`, `/profile`, `/orders/:path*`, and `/admin`.
+  * Validates session cookies server-side against `/api/auth/me`.
+  * Emits `HTTP 307` for unauthenticated requests and `HTTP 403` for non-admin access to `/admin`.
+* **Application Pages:**
+  * `/`: Public landing page with clean B2B hero, feature overview, and login/register CTAs.
+  * `/marketplace`: Public wholesale commodity catalog with search and filters.
+  * `/marketplace/[id]`: Commodity details; viewing is public, creating orders requires authentication.
+  * `/login`: Enterprise B2B sign-in with return URL redirection.
+  * `/register`: Role-gated onboarding (Buyer vs. Supplier); `ADMIN` self-registration strictly blocked.
+  * `/dashboard`: Unified dashboard with dynamic `BUYER` and `SUPPLIER` presentation, masked credentials, and non-blocking settlement wallet banner.
+  * `/profile`: Business identity management, masked tax records (`maskedPan`, `maskedCitizenship`), and settlement wallet linking.
+  * `/orders/[id]`: Protected wholesale order view with on-chain PDA state sync and 6-stage lifecycle signing.
+  * `/admin`: Server-gated protocol governance dashboard restricted to internal `ADMIN` accounts.
+* **Key Components:**
+  * `Navbar.tsx`: Dual-mode header displaying public links when logged out and authenticated links (`Dashboard`, `Orders`, `WalletButton`, `Profile`, `Logout`) when logged in.
+  * `WalletButton.tsx`: Non-custodial settlement wallet button with real-time balance queries and network health indicators.
+  * `DashboardHeader.tsx`: Organization identity, active role badge, verification state, and decoupled wallet alert.
+  * `ConfirmModal.tsx` & `TransactionStatus.tsx`: Transparent financial confirmation and 6-stage Anchor transaction feedback.
 
-### 2.2. Backend (`backend/`)
-* **Framework:** Express.js with TypeScript and Prisma ORM.
+### 3.2. Backend (`backend/`)
+* **Framework:** Node.js + Express with TypeScript.
 * **Responsibilities:**
-  * Off-chain commodity catalog management, search, and category filtering.
-  * Indexing and caching on-chain order metadata for sub-second UI rendering.
-  * REST endpoints: `/api/products`, `/api/orders`, `/health`.
+  * Authentication endpoints: `/api/auth/register`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/link-wallet`, `/api/auth/profile`.
+  * Session generation and PBKDF2 (`sha512`) password hashing with salted digests.
+  * Scoped order APIs: `/api/orders` (filtered by authenticated user wallet) and `/api/orders/:id` (party ownership validation).
+  * Safe data sanitization masking raw PAN and Citizenship credentials.
 
-### 2.3. On-Chain Smart Contract (`programs/bazaarx/`)
-* **Framework:** Anchor 0.31 on Solana.
-* **Responsibilities:**
-  * Non-custodial escrow vault custody and lifecycle state enforcement.
-  * Deterministic PDA derivation model preventing administrative asset diversion.
-  * Automated CPI transfer of token balances upon verified physical delivery.
+### 3.3. On-Chain Smart Contract (`programs/bazaarx/`)
+* **Framework:** Anchor 0.31 on Solana Devnet.
+* **Program ID:** `BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN`
+* **Canonical USDC Mint:** `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`
+* **PDA Derivation:**
+  * `Config PDA`: `seeds = [b"config"]` (`DscHbC3D6FXeaRZ29WA8qeM61ex8dQUMCsLxpqxVVDDX`)
+  * `Order PDA`: `seeds = [b"order", buyer.key().as_ref(), order_id.to_le_bytes().as_ref()]`
+  * `Vault PDA`: `seeds = [b"vault", order.key().as_ref()]`
 
 ---
 
-## 3. PDA Derivation Model
-
-### 1. Config PDA
-Stores protocol administrator and canonical USDC settlement token mint.
-* **Seeds:** `[b"config"]`
-* **Address:** `DscHbC3D6FXeaRZ29WA8qeM61ex8dQUMCsLxpqxVVDDX` (Bump: 255)
-
-### 2. Order PDA
-Unique, deterministic trade account binding an individual buyer to a specific order ID.
-* **Seeds:** `[b"order", buyer.key().as_ref(), order_id.to_le_bytes().as_ref()]`
-* **Example Order #80024 PDA:** `GivpLzmmEH5M2WVbWqbjGRsSSSZxTvcGLFoC6rvwWFUm`
-
-### 3. Vault PDA
-Token account owned by the Anchor program instance holding escrowed USDC tokens.
-* **Seeds:** `[b"vault", order.key().as_ref()]`
-* **Authority:** The Order PDA itself via program seeds (`bump`).
-
----
-
-## 4. End-to-End Escrow Settlement Flow
+## 4. End-to-End B2B Trade & Settlement Flow
 
 ```text
-1. Buyer initiates order:
-   Buyer Wallet ──(create_order)──> Order PDA [Created]
+1. Onboarding & Authentication:
+   Visitor ──(Register as Buyer)──> Password Hash & Session Cookie Issued ──> /dashboard?role=BUYER
 
-2. Supplier confirms inventory:
-   Supplier Wallet ──(accept_order)──> Order PDA [Accepted]
+2. Order Placement:
+   Buyer selects commodity ──(POST /api/orders)──> Backend records order
+   Buyer Wallet Adapter ──(create_order Anchor RPC)──> Order PDA created on Devnet [Created]
 
-3. Buyer funds escrow:
-   Buyer ATA ──(fund_escrow CPI)──> Vault PDA [Funded]
+3. Supplier Acceptance:
+   Supplier logs in ──> Reviews incoming order
+   Supplier Wallet Adapter ──(accept_order Anchor RPC)──> Order PDA [Accepted]
 
-4. Supplier dispatches freight:
-   Supplier Wallet ──(mark_shipped)──> Order PDA [Shipped]
+4. Escrow Funding:
+   Buyer clicks "Fund Escrow" ──> Prompts connected Settlement Wallet
+   Buyer Wallet Adapter ──(fund_escrow CPI)──> USDC locked in Vault PDA [Funded]
 
-5. Buyer confirms physical receipt:
-   Buyer Wallet ──(confirm_delivery)──> Order PDA [Delivered]
+5. Freight Dispatch:
+   Supplier dispatches wholesale cargo 
+   Supplier Wallet Adapter ──(mark_shipped Anchor RPC)──> Order PDA [Shipped]
 
-6. Program releases payout:
-   Vault PDA ──(release_payment CPI)──> Supplier ATA [Completed]
+6. Delivery Inspection & Payout Release:
+   Buyer inspects goods at warehouse
+   Buyer Wallet Adapter ──(confirm_delivery Anchor RPC)──> Order PDA [Delivered]
+   Program triggers automated CPI payout ──> USDC transferred to Supplier [Completed]
 ```
