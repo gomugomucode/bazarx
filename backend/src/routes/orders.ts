@@ -1,9 +1,30 @@
 import { Router, Request, Response } from 'express';
+import { PublicKey } from '@solana/web3.js';
 import { store } from '../store';
-import { Order, TransactionRecord } from '../types';
+import { Order, OrderState, TransactionRecord } from '../types';
 import { getAuthUser } from './auth';
+import {
+  deriveOrderPda,
+  deriveVaultPda,
+  fetchOnChainOrder,
+  verifyTransaction,
+  reconcileOrderOnChain,
+  DEVNET_USDC_MINT,
+} from '../solana';
 
 const router = Router();
+
+// Valid state machine forward progression
+const VALID_TRANSITIONS: Record<OrderState, OrderState[]> = {
+  Created: ['Accepted'],
+  Accepted: ['Funded'],
+  Funded: ['Shipped'],
+  Shipped: ['Delivered'],
+  Delivered: ['Completed'],
+  Completed: [],
+  Disputed: [],
+  Refunded: [],
+};
 
 // GET /api/orders (Protected: Requires authenticated business session)
 router.get('/', (req: Request, res: Response) => {
@@ -90,23 +111,57 @@ router.post('/', (req: Request, res: Response) => {
       blockchainOrderId,
     } = req.body;
 
+    const parsedQty = Number(quantity);
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Order quantity must be greater than zero.',
+      });
+    }
+
     const product = store.getProductById(productId);
     if (!product) {
       return res.status(400).json({ success: false, error: 'Product not found' });
     }
 
-    const calculatedAmount = product.priceUsdc * (Number(quantity) || 1);
+    // Buyer cannot trade with themselves
+    const effectiveBuyerWallet = (buyerWallet || user.wallet || '').trim().toLowerCase();
+    if (
+      effectiveBuyerWallet &&
+      product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'Supplier wallet cannot be identical to buyer wallet (self-trading prohibited).',
+      });
+    }
+
+    const calculatedAmount = product.priceUsdc * parsedQty;
     const orderIdNum = blockchainOrderId || Math.floor(1000 + Math.random() * 9000);
     const orderIdStr = `ord-${orderIdNum}`;
     const now = new Date().toISOString();
 
-    const isRealOnChainTx = Boolean(signature && !signature.startsWith('simulated') && !signature.startsWith('sim_'));
+    const isRealOnChainTx = Boolean(
+      signature && !signature.startsWith('simulated') && !signature.startsWith('sim_')
+    );
+
+    // Derive order PDA if buyer wallet is valid pubkey
+    let resolvedOrderPda = orderPda;
+    if (!resolvedOrderPda || resolvedOrderPda.startsWith('PDA_')) {
+      try {
+        const buyerPubkey = new PublicKey(buyerWallet || user.wallet);
+        const [derived] = deriveOrderPda(buyerPubkey, orderIdNum);
+        resolvedOrderPda = derived.toBase58();
+      } catch {
+        resolvedOrderPda = `PDA_${orderIdNum}`;
+      }
+    }
 
     const initialTx: TransactionRecord = {
       step: 'Created',
       signature: isRealOnChainTx ? signature : undefined,
       timestamp: now,
-      signer: buyerWallet || 'UnknownBuyer',
+      signer: buyerWallet || user.wallet || 'UnknownBuyer',
       explorerUrl: isRealOnChainTx
         ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
         : undefined,
@@ -119,7 +174,7 @@ router.post('/', (req: Request, res: Response) => {
       blockchainOrderId: orderIdNum,
       productId: product.id,
       productName: product.name,
-      quantity: Number(quantity) || 1,
+      quantity: parsedQty,
       unit: product.unit,
       amountUsdc: calculatedAmount,
       buyerWallet: buyerWallet || user.wallet || 'DemoBuyerWallet',
@@ -129,8 +184,8 @@ router.post('/', (req: Request, res: Response) => {
       supplierName: product.supplierName,
       shippingAddress: shippingAddress || 'Kathmandu, Nepal',
       state: 'Created',
-      orderPda: orderPda || `PDA_${orderIdNum}`,
-      mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+      orderPda: resolvedOrderPda,
+      mint: DEVNET_USDC_MINT.toBase58(),
       createdAt: now,
       transactions: [initialTx],
     };
@@ -142,9 +197,92 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
-// PATCH /api/orders/:id (Update order state)
-router.patch('/:id', (req: Request, res: Response) => {
+// POST /api/orders/:id/reconcile (Authoritative On-Chain State Reconciliation)
+router.post('/:id/reconcile', async (req: Request, res: Response) => {
   try {
+    const user = getAuthUser(req);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to reconcile orders.',
+      });
+    }
+
+    const order = store.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    // Authorization check
+    const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+    const isBuyer =
+      Boolean(user.wallet && order.buyerWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+      Boolean(user.email && order.buyerEmail?.toLowerCase() === user.email.toLowerCase()) ||
+      order.buyerName === user.businessName ||
+      order.buyerName === user.fullName;
+    const isSupplier =
+      Boolean(user.wallet && order.supplierWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+      Boolean(user.email && order.supplierEmail?.toLowerCase() === user.email.toLowerCase()) ||
+      order.supplierName === user.businessName;
+
+    if (!isAdmin && !isBuyer && !isSupplier) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: You do not have permission to reconcile this order.',
+      });
+    }
+
+    // Execute idempotent on-chain inspection & reconciliation
+    const reconciliation = await reconcileOrderOnChain(order);
+
+    // If on-chain state legitimately advanced beyond local state, update local store
+    if (reconciliation.actionTaken === 'CHAIN_ADVANCED_UPDATED') {
+      const advancedState = reconciliation.onChainState as OrderState;
+      const now = new Date().toISOString();
+      const updates: Partial<Order> = { state: advancedState };
+
+      if (advancedState === 'Accepted' && !order.acceptedAt) updates.acceptedAt = now;
+      if (advancedState === 'Funded' && !order.fundedAt) updates.fundedAt = now;
+      if (advancedState === 'Shipped' && !order.shippedAt) updates.shippedAt = now;
+      if (advancedState === 'Delivered' && !order.deliveredAt) updates.deliveredAt = now;
+      if (advancedState === 'Completed' && !order.completedAt) updates.completedAt = now;
+
+      const reconcileTx: TransactionRecord = {
+        step: advancedState,
+        timestamp: now,
+        signer: 'OnChainReconciliation',
+        action: `reconcile_to_${advancedState.toLowerCase()}`,
+        isSimulated: false,
+      };
+
+      const updated = store.updateOrderFromReconciliation(order.id, updates, reconcileTx);
+      reconciliation.order = updated || undefined;
+    }
+
+    return res.json({
+      success: true,
+      reconciliation,
+    });
+  } catch (error: any) {
+    console.error('Error during reconciliation:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to reconcile on-chain state',
+    });
+  }
+});
+
+// PATCH /api/orders/:id (Hardened state machine update with on-chain verification)
+router.patch('/:id', async (req: Request, res: Response) => {
+  try {
+    const user = getAuthUser(req);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to update order state.',
+      });
+    }
+
     const { nextState, signature, signer, action } = req.body;
     const existingOrder = store.getOrderById(req.params.id);
 
@@ -152,13 +290,79 @@ router.patch('/:id', (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    const isRealOnChainTx = Boolean(signature && !signature.startsWith('simulated') && !signature.startsWith('sim_'));
+    // 1. Validate State Machine progression
+    const validNextStates = VALID_TRANSITIONS[existingOrder.state] || [];
+    if (!validNextStates.includes(nextState)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid state transition: Cannot transition from '${existingOrder.state}' to '${nextState}'. Valid next states: [${validNextStates.join(', ')}]`,
+      });
+    }
+
+    // 2. Validate Counterparty Role Authorization
+    const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+    const isBuyer =
+      Boolean(user.wallet && existingOrder.buyerWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+      Boolean(user.email && existingOrder.buyerEmail?.toLowerCase() === user.email.toLowerCase());
+    const isSupplier =
+      Boolean(user.wallet && existingOrder.supplierWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+      Boolean(user.email && existingOrder.supplierEmail?.toLowerCase() === user.email.toLowerCase());
+
+    if (['Accepted', 'Shipped'].includes(nextState) && !isSupplier && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: `Unauthorized: Only the designated supplier can advance the order to '${nextState}'.`,
+      });
+    }
+
+    if (['Funded', 'Delivered'].includes(nextState) && !isBuyer && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: `Unauthorized: Only the designated buyer can advance the order to '${nextState}'.`,
+      });
+    }
+
+    // 3. For blockchain-backed states, verify against Solana
+    let isRealOnChainTx = Boolean(
+      signature && !signature.startsWith('simulated') && !signature.startsWith('sim_')
+    );
+
+    if (['Funded', 'Shipped', 'Delivered', 'Completed'].includes(nextState)) {
+      let orderPdaPubkey: PublicKey | null = null;
+      try {
+        if (existingOrder.orderPda && !existingOrder.orderPda.startsWith('PDA_')) {
+          orderPdaPubkey = new PublicKey(existingOrder.orderPda);
+        }
+      } catch {
+        orderPdaPubkey = null;
+      }
+
+      if (isRealOnChainTx && orderPdaPubkey) {
+        // Verify transaction exists, succeeded, and touched this Order PDA
+        const verifyRes = await verifyTransaction(signature, orderPdaPubkey);
+        if (!verifyRes.verified) {
+          return res.status(400).json({
+            success: false,
+            error: `On-chain transaction verification failed: ${verifyRes.error}`,
+          });
+        }
+      } else if (orderPdaPubkey) {
+        // If no tx signature provided, inspect on-chain account directly
+        const snapshot = await fetchOnChainOrder(orderPdaPubkey);
+        if (!snapshot || snapshot.state !== nextState) {
+          return res.status(400).json({
+            success: false,
+            error: `Blockchain state mismatch: Solana Anchor program is currently at state '${snapshot?.state || 'Unknown'}'. Cannot set backend state to '${nextState}' without verified on-chain confirmation.`,
+          });
+        }
+      }
+    }
 
     const txRecord: TransactionRecord = {
       step: nextState,
       signature: isRealOnChainTx ? signature : undefined,
       timestamp: new Date().toISOString(),
-      signer: signer || 'SignerWallet',
+      signer: signer || user.wallet || 'SignerWallet',
       explorerUrl: isRealOnChainTx
         ? `https://explorer.solana.com/tx/${signature}?cluster=devnet`
         : undefined,

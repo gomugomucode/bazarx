@@ -104,3 +104,41 @@ export interface SessionRecord {
   createdAt: string;
   expiresAt: string;
 }
+
+export interface OnChainOrderSnapshot {
+  orderPda: string;
+  orderId: number;
+  state: OrderState;
+  buyer: string;
+  supplier: string;
+  amount: number; // Raw micro-USDC (6 decimals)
+  amountUsdc: number; // Human-readable USDC
+  mint: string;
+  vault: string;
+  vaultBalance: number | null; // Human-readable USDC
+  createdAt: number;
+  acceptedAt: number;
+  exists: boolean;
+  fetchedAt: string;
+  slot?: number;
+}
+
+export interface ReconciliationResult {
+  orderId: string;
+  blockchainOrderId: number;
+  backendState: OrderState;
+  onChainState: OrderState | 'NonExistent';
+  stateMatch: boolean;
+  backendAmount: number;
+  onChainAmount: number | null;
+  amountMatch: boolean;
+  vaultAddress: string;
+  vaultBalance: number | null;
+  expectedVaultBalance: number;
+  vaultMatch: boolean;
+  discrepancies: string[];
+  onChainVerified: boolean;
+  actionTaken: 'MATCH_VERIFIED' | 'CHAIN_ADVANCED_UPDATED' | 'CHAIN_CONFLICT_RECORDED' | 'NOT_FOUND_ON_CHAIN';
+  reconciledAt: string;
+  order?: Order;
+}

@@ -9,6 +9,8 @@ import { Timeline } from '@/components/Timeline';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { TransactionStatus, TxLifecycleStage } from '@/components/TransactionStatus';
+import { BlockchainVerificationCard } from '@/components/BlockchainVerificationCard';
+import { AdversarialDemoPanel } from '@/components/AdversarialDemoPanel';
 import {
   shortenAddress,
   getExplorerAccountUrl,
@@ -37,6 +39,7 @@ import {
   Wallet,
   Info,
   HelpCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -467,6 +470,35 @@ export default function OrderDetailPage() {
   const connectedAddress = publicKey ? publicKey.toBase58() : null;
   const isBuyerConnected = connectedAddress === order.buyerWallet;
   const isSupplierConnected = connectedAddress === order.supplierWallet;
+
+  // Determine authorized settlement wallet for the current lifecycle step
+  const expectedStepWallet =
+    order.state === 'Created' || order.state === 'Funded'
+      ? order.supplierWallet
+      : order.state === 'Accepted' || order.state === 'Shipped'
+      ? order.buyerWallet
+      : order.supplierWallet;
+
+  const expectedStepRole =
+    order.state === 'Created' || order.state === 'Funded'
+      ? 'Supplier'
+      : order.state === 'Accepted' || order.state === 'Shipped'
+      ? 'Buyer'
+      : 'Supplier (Payout Recipient)';
+
+  const isWalletMismatchedForStep = Boolean(
+    connected &&
+    connectedAddress &&
+    order.state !== 'Completed' &&
+    connectedAddress.toLowerCase() !== expectedStepWallet.toLowerCase()
+  );
+
+  const isSessionWalletMismatched = Boolean(
+    user?.wallet &&
+    connected &&
+    connectedAddress &&
+    user.wallet.toLowerCase() !== connectedAddress.toLowerCase()
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">

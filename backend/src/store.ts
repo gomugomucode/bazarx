@@ -326,6 +326,40 @@ class Store {
     this.saveOrdersToDisk(orders);
     return orders[orderIndex];
   }
+
+  updateOrderFromReconciliation(
+    orderId: string,
+    updates: Partial<Order>,
+    txRecord?: TransactionRecord
+  ): Order | null {
+    const orders = this.getOrdersFromDisk();
+    const orderIndex = orders.findIndex(
+      (o) => o.id === orderId || String(o.blockchainOrderId) === orderId
+    );
+
+    if (orderIndex === -1) return null;
+
+    const order = orders[orderIndex];
+    const merged: Order = {
+      ...order,
+      ...updates,
+    };
+
+    if (txRecord) {
+      if (!merged.transactions) merged.transactions = [];
+      const alreadyExists = merged.transactions.some(
+        (t) => (txRecord.signature && t.signature === txRecord.signature) ||
+               (t.step === txRecord.step && !txRecord.signature)
+      );
+      if (!alreadyExists) {
+        merged.transactions.push(txRecord);
+      }
+    }
+
+    orders[orderIndex] = merged;
+    this.saveOrdersToDisk(orders);
+    return orders[orderIndex];
+  }
 }
 
 export const store = new Store();

@@ -1,32 +1,25 @@
-import { PublicKey, Connection, clusterApiUrl, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, clusterApiUrl, VersionedTransactionResponse } from '@solana/web3.js';
 import { Program, AnchorProvider, BN, Idl } from '@coral-xyz/anchor';
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
-import bazaarxIdl from '@/idl/bazaarx.json';
-import { OnChainOrderSnapshot, ReconciliationResult, Order, OrderState } from '@/lib/types';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import bazaarxIdl from './idl/bazaarx.json';
+import { OnChainOrderSnapshot, OrderState, ReconciliationResult, Order } from './types';
 
-// BazaarX Program ID (matching target/deploy/bazaarx-keypair.json)
+// Canonical BazaarX Solana Devnet Program ID
 export const PROGRAM_ID_STRING = 'BHHaiHFRMyVRqQYp2rdC41DECeNBE544ASYvsx2fvQoN';
 export const PROGRAM_ID = new PublicKey(PROGRAM_ID_STRING);
 
-// Solana Devnet canonical USDC mint (Circle Devnet USDC)
+// Solana Devnet Circle USDC Mint
 export const DEVNET_USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
-export const SOLANA_NETWORK = 'devnet';
-export const RPC_ENDPOINT = process.env.NEXT_PUBLIC_RPC_ENDPOINT || clusterApiUrl('devnet');
+export const SOLANA_RPC_ENDPOINT = process.env.SOLANA_RPC_ENDPOINT || process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://api.devnet.solana.com';
 
-export const getConnection = () => {
-  return new Connection(RPC_ENDPOINT, 'confirmed');
-};
+let connectionInstance: Connection | null = null;
 
-/**
- * Creates an Anchor Program instance using a connected wallet adapter.
- */
-export function getAnchorProgram(connection: Connection, wallet: any): Program {
-  const provider = new AnchorProvider(connection, wallet, {
-    preflightCommitment: 'confirmed',
-    commitment: 'confirmed',
-  });
-  return new Program(bazaarxIdl as Idl, provider);
+export function getConnection(): Connection {
+  if (!connectionInstance) {
+    connectionInstance = new Connection(SOLANA_RPC_ENDPOINT, 'confirmed');
+  }
+  return connectionInstance;
 }
 
 /**
@@ -41,15 +34,15 @@ export function deriveConfigPda(programId: PublicKey = PROGRAM_ID): [PublicKey, 
 }
 
 /**
- * Derives an Order PDA for a buyer and order ID
- * Seeds: ["order", buyer.publicKey, order_id (le_bytes)]
+ * Derives the unique Order PDA for a buyer and order ID
+ * Seeds: ["order", buyerPubkey, orderId (8-byte little-endian)]
  */
 export function deriveOrderPda(
   buyerPubkey: PublicKey,
-  orderId: number,
+  orderId: number | BN,
   programId: PublicKey = PROGRAM_ID
 ): [PublicKey, number] {
-  const orderIdBn = new BN(orderId);
+  const orderIdBn = BN.isBN(orderId) ? orderId : new BN(orderId);
   const orderIdBuffer = orderIdBn.toArrayLike(Buffer, 'le', 8);
   return PublicKey.findProgramAddressSync(
     [Buffer.from('order'), buyerPubkey.toBuffer(), orderIdBuffer],
@@ -58,7 +51,7 @@ export function deriveOrderPda(
 }
 
 /**
- * Derives the Escrow Token Vault PDA
+ * Derives the program-controlled Escrow Token Vault PDA for an Order PDA
  * Seeds: ["vault", orderPda]
  */
 export function deriveVaultPda(
@@ -72,101 +65,38 @@ export function deriveVaultPda(
 }
 
 /**
- * Derives the Associated Token Account (ATA) for a given owner and mint.
+ * Derives the Associated Token Account (ATA) for an owner and token mint
  */
 export function getAssociatedTokenAccount(owner: PublicKey, mint: PublicKey = DEVNET_USDC_MINT): PublicKey {
   return getAssociatedTokenAddressSync(mint, owner);
 }
 
 /**
- * Queries an on-chain Order account directly from Solana Devnet.
+ * Fetches and decodes an on-chain Order PDA snapshot from Solana Devnet.
+ * Returns null if the account does not exist or cannot be parsed.
  */
-export async function fetchOnChainOrder(orderPda: PublicKey, connection: Connection = getConnection()) {
-  try {
-    const provider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
-    const program = new Program(bazaarxIdl as Idl, provider);
-    const orderData = await (program.account as any).order.fetch(orderPda);
-    return orderData;
-  } catch (err) {
-    console.warn('Could not fetch on-chain order account:', err);
-    return null;
-  }
-}
-
-/**
- * Queries the global on-chain Config account from Solana Devnet.
- */
-export async function fetchOnChainConfig(connection: Connection = getConnection()) {
-  try {
-    const provider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
-    const program = new Program(bazaarxIdl as Idl, provider);
-    const [configPda] = deriveConfigPda();
-    const configData = await (program.account as any).config.fetch(configPda);
-    return configData;
-  } catch (err) {
-    console.warn('Could not fetch on-chain config account:', err);
-    return null;
-  }
-}
-
-/**
- * Queries token account balance directly from Solana Devnet RPC
- */
-export async function fetchTokenBalance(
-  connection: Connection,
-  tokenAccount: PublicKey
-): Promise<number | null> {
-  try {
-    const balance = await connection.getTokenAccountBalance(tokenAccount);
-    return balance.value.uiAmount ?? 0;
-  } catch (err) {
-    return null;
-  }
-}
-
-/**
- * Generates Solana Explorer links
- */
-export function getExplorerTxUrl(txSignature: string, cluster: string = 'devnet'): string {
-  return `https://explorer.solana.com/tx/${txSignature}?cluster=${cluster}`;
-}
-
-export function getExplorerAccountUrl(address: string, cluster: string = 'devnet'): string {
-  return `https://explorer.solana.com/address/${address}?cluster=${cluster}`;
-}
-
-/**
- * Shortens public keys for clean UI display
- */
-export function shortenAddress(address: string, chars: number = 4): string {
-  if (!address) return '';
-  if (address.length <= chars * 2 + 2) return address;
-  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
-}
-
-/**
- * Fetches strongly-typed on-chain order snapshot with vault balance from Solana Devnet.
- */
-export async function fetchOnChainOrderSnapshot(
+export async function fetchOnChainOrder(
   orderPda: PublicKey,
-  connection: Connection = getConnection()
+  conn: Connection = getConnection()
 ): Promise<OnChainOrderSnapshot | null> {
   try {
-    const provider = new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
+    const provider = new AnchorProvider(conn, {} as any, { commitment: 'confirmed' });
     const program = new Program(bazaarxIdl as Idl, provider);
 
     const [orderData, slot] = await Promise.all([
       (program.account as any).order.fetch(orderPda).catch(() => null),
-      connection.getSlot('confirmed').catch(() => undefined),
+      conn.getSlot('confirmed').catch(() => undefined),
     ]);
 
-    if (!orderData) return null;
+    if (!orderData) {
+      return null;
+    }
 
     const rawState = Object.keys(orderData.state)[0];
     const capitalState = (rawState.charAt(0).toUpperCase() + rawState.slice(1)) as OrderState;
 
     const [vaultPda] = deriveVaultPda(orderPda);
-    const vaultBal = await fetchTokenBalance(connection, vaultPda);
+    const vaultBal = await fetchVaultTokenBalance(vaultPda, conn);
 
     const rawAmount = orderData.amount ? Number(orderData.amount.toString()) : 0;
     const amountUsdc = rawAmount / 1e6;
@@ -191,13 +121,39 @@ export async function fetchOnChainOrderSnapshot(
 
     return snapshot;
   } catch (err) {
-    console.warn(`[solana-helper] fetchOnChainOrderSnapshot failed:`, err);
+    console.warn(`[solana-helper] fetchOnChainOrder failed for ${orderPda.toBase58()}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Fetches token balance for the program vault.
+ */
+export async function fetchVaultTokenBalance(
+  vaultPda: PublicKey,
+  conn: Connection = getConnection()
+): Promise<number | null> {
+  return fetchTokenBalance(vaultPda, conn);
+}
+
+/**
+ * Fetches token balance for any given SPL token account.
+ */
+export async function fetchTokenBalance(
+  tokenAccount: PublicKey,
+  conn: Connection = getConnection()
+): Promise<number | null> {
+  try {
+    const resp = await conn.getTokenAccountBalance(tokenAccount, 'confirmed');
+    return resp.value.uiAmount ?? 0;
+  } catch {
     return null;
   }
 }
 
 /**
  * Verifies a Solana transaction signature on-chain.
+ * Checks that the transaction exists, succeeded, and involved the expected program.
  */
 export async function verifyTransaction(
   signature: string,
@@ -225,6 +181,7 @@ export async function verifyTransaction(
       };
     }
 
+    // Check if BazaarX program was invoked in this transaction
     const accountKeys = tx.transaction.message.getAccountKeys();
     const invokedProgram = accountKeys.staticAccountKeys.some(
       (k) => k.toBase58() === PROGRAM_ID_STRING
@@ -237,6 +194,7 @@ export async function verifyTransaction(
       };
     }
 
+    // Check if expected Order PDA was touched
     if (expectedOrderPda) {
       const orderPdaStr = expectedOrderPda.toBase58();
       const touchedOrder = accountKeys.staticAccountKeys.some(
@@ -257,7 +215,13 @@ export async function verifyTransaction(
 }
 
 /**
- * Client-side / local reconciliation evaluator
+ * Safe, idempotent reconciliation logic comparing local backend order with authoritative Solana Devnet state.
+ *
+ * Rules:
+ * 1. MATCH: Backend and chain agree -> report verified.
+ * 2. CHAIN ADVANCED: Chain contains a legitimate forward transition not yet reflected locally -> update local state safely.
+ * 3. CHAIN CONFLICT: Backend claims a state impossible relative to chain (e.g. backend FUNDED, chain ACCEPTED) -> record discrepancy, DO NOT overwrite chain, DO NOT erase discrepancy.
+ * 4. NOT FOUND: Order PDA not yet initialized on chain -> report non-existent, stateMatch false if backend claims active state.
  */
 export async function reconcileOrderOnChain(
   localOrder: Order,
@@ -274,6 +238,7 @@ export async function reconcileOrderOnChain(
     if (localOrder.orderPda && !localOrder.orderPda.startsWith('PDA_')) {
       orderPdaPubkey = new PublicKey(localOrder.orderPda);
     } else {
+      // Deterministically derive from registered buyer wallet and blockchainOrderId
       const buyerPubkey = new PublicKey(localOrder.buyerWallet);
       [orderPdaPubkey] = deriveOrderPda(buyerPubkey, blockchainOrderId);
     }
@@ -307,7 +272,8 @@ export async function reconcileOrderOnChain(
     };
   }
 
-  const snapshot = await fetchOnChainOrderSnapshot(orderPdaPubkey, conn);
+  // 1. Fetch live on-chain snapshot
+  const snapshot = await fetchOnChainOrder(orderPdaPubkey, conn);
 
   if (!snapshot || !snapshot.exists) {
     if (backendState !== 'Created') {
@@ -336,6 +302,7 @@ export async function reconcileOrderOnChain(
     };
   }
 
+  // 2. State rank matrix to evaluate whether chain advanced or has conflict
   const STATE_ORDER: Record<OrderState, number> = {
     Created: 1,
     Accepted: 2,
@@ -351,6 +318,7 @@ export async function reconcileOrderOnChain(
   const backendRank = STATE_ORDER[backendState] || 0;
   const chainRank = STATE_ORDER[chainState] || 0;
 
+  // 3. Amount and Vault balance verification
   const onChainAmount = snapshot.amountUsdc;
   const amountMatch = Math.abs(backendAmount - onChainAmount) < 0.01;
   if (!amountMatch) {
@@ -360,6 +328,7 @@ export async function reconcileOrderOnChain(
   }
 
   const vaultBalance = snapshot.vaultBalance;
+  // Expected vault balance: if Funded, Shipped, Delivered -> order amount; if Created, Accepted, Completed -> 0
   let expectedVaultBalance = 0;
   if (['Funded', 'Shipped', 'Delivered'].includes(chainState)) {
     expectedVaultBalance = onChainAmount;
@@ -372,6 +341,7 @@ export async function reconcileOrderOnChain(
     );
   }
 
+  // 4. Counterparty public key validation
   if (snapshot.buyer.toLowerCase() !== localOrder.buyerWallet.toLowerCase()) {
     discrepancies.push(
       `On-chain buyer mismatch: Chain has ${snapshot.buyer}, backend order recorded ${localOrder.buyerWallet}.`
@@ -389,8 +359,10 @@ export async function reconcileOrderOnChain(
   if (stateMatch) {
     actionTaken = 'MATCH_VERIFIED';
   } else if (chainRank > backendRank) {
+    // Chain legitimately advanced on Solana without local recording!
     actionTaken = 'CHAIN_ADVANCED_UPDATED';
   } else {
+    // Backend claims a state ahead of Solana (e.g. backend FUNDED, chain ACCEPTED) -> CONFLICT!
     stateMatch = false;
     actionTaken = 'CHAIN_CONFLICT_RECORDED';
     discrepancies.push(
