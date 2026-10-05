@@ -142,5 +142,11 @@
     "userId": "usr_1791171992066_363a612a",
     "createdAt": "2026-10-05T03:46:32.068Z",
     "expiresAt": "2026-10-12T03:46:32.068Z"
+  },
+  {
+    "token": "6610e2fc983d697023f51b3de195e34ed034ba2969d60b49e6fffb40867fc2fe",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-05T08:07:25.934Z",
+    "expiresAt": "2026-10-12T08:07:25.934Z"
   }
 ]

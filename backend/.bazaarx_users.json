@@ -176,5 +176,23 @@
     "verificationNotes": "Buyer profile submitted. Verification pending.",
     "createdAt": "2026-10-05T03:46:32.066Z",
     "updatedAt": "2026-10-05T03:46:32.066Z"
+  },
+  {
+    "id": "usr_1791187506915_5838f7ea",
+    "email": "yarshabyte@gmail.com",
+    "passwordHash": "534a253f1293f73d81afdf79ebfd9685b97a3c2eb2045eb8d09fc6fb4f56091f821db7fb80bb4d7de3272b377555d323210ad0ce903ec14ba3f3b36dbea4ef98",
+    "fullName": "Yarsha",
+    "businessName": "Yarsha Byte",
+    "phone": "+977 9808200850",
+    "citizenshipNumber": "02334214324",
+    "panNumber": "1243123213",
+    "role": "SUPPLIER",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Supplier profile submitted. Verification pending administrative compliance review.",
+    "createdAt": "2026-10-05T08:05:06.915Z",
+    "updatedAt": "2026-10-05T08:05:06.915Z"
   }
 ]
