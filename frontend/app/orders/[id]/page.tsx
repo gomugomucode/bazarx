@@ -664,6 +664,14 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
+      {/* Authoritative Devnet Blockchain Verification & Reconciliation Card */}
+      <BlockchainVerificationCard
+        order={order}
+        onOrderReconciled={(upd) => setOrder(upd)}
+        onChainState={onChainStateVerified ? order.state : null}
+        vaultUsdcBalance={vaultUsdcBalance}
+      />
+
       {/* Grid: Left = Action Operator Box, Right = Interactive Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Interactive Action Card for Current State */}
@@ -725,34 +733,37 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {/* Connected Role Advice */}
-            {connected && (
-              <>
-                {order.state === 'Created' && !isSupplierConnected && (
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
-                    <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <span>
-                      Supplier signature required. Connected as{' '}
-                      <code className="font-mono font-bold text-slate-800">
-                        {shortenAddress(connectedAddress || '', 4)}
-                      </code>
-                      .
+            {/* Wallet Mismatch Warning Guard */}
+            {isWalletMismatchedForStep && (
+              <div className="p-4 rounded-xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 space-y-2.5">
+                <div className="flex items-center gap-2 font-bold text-xs text-amber-900 uppercase tracking-wide">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>WALLET MISMATCH</span>
+                </div>
+                <div className="text-[11px] font-mono space-y-1 bg-white/70 p-2.5 rounded-lg border border-amber-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Logged-in settlement wallet:</span>
+                    <span className="font-bold text-slate-800">
+                      {shortenAddress(user?.wallet || 'None Linked', 5)}
                     </span>
                   </div>
-                )}
-                {order.state === 'Accepted' && !isBuyerConnected && (
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
-                    <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <span>
-                      Buyer escrow funding required. Connected as{' '}
-                      <code className="font-mono font-bold text-slate-800">
-                        {shortenAddress(connectedAddress || '', 4)}
-                      </code>
-                      .
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Connected wallet:</span>
+                    <span className="font-bold text-amber-900">
+                      {shortenAddress(connectedAddress || '', 5)}
                     </span>
                   </div>
-                )}
-              </>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-sans">Required {expectedStepRole} wallet:</span>
+                    <span className="font-bold text-slate-900">
+                      {shortenAddress(expectedStepWallet, 5)}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-900 leading-relaxed font-sans">
+                  This wallet cannot perform this order&apos;s authorized action. Please switch to the authorized settlement wallet in your wallet extension.
+                </p>
+              </div>
             )}
 
             {/* Stage 1: Created -> Next Action: Supplier Accepts */}
@@ -773,11 +784,13 @@ export default function OrderDetailPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => executeStep('Accepted', 'accept_order', 'supplier')}
-                    disabled={actionInProgress || !connected}
+                    disabled={actionInProgress || !connected || isWalletMismatchedForStep}
                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {actionInProgress ? (
                       'Signing accept_order on Solana...'
+                    ) : isWalletMismatchedForStep ? (
+                      'Wallet Mismatch — Switch to Supplier Wallet'
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
@@ -857,11 +870,13 @@ export default function OrderDetailPage() {
                         'bg-emerald-600 hover:bg-emerald-500'
                       )
                     }
-                    disabled={actionInProgress || !connected}
+                    disabled={actionInProgress || !connected || isWalletMismatchedForStep}
                     className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {actionInProgress ? (
                       'Processing Escrow Funding...'
+                    ) : isWalletMismatchedForStep ? (
+                      'Wallet Mismatch — Switch to Buyer Wallet'
                     ) : (
                       <>
                         <Lock className="w-4 h-4" />
@@ -894,11 +909,13 @@ export default function OrderDetailPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => executeStep('Shipped', 'mark_shipped', 'supplier')}
-                    disabled={actionInProgress || !connected}
+                    disabled={actionInProgress || !connected || isWalletMismatchedForStep}
                     className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {actionInProgress ? (
                       'Recording Dispatch on Solana...'
+                    ) : isWalletMismatchedForStep ? (
+                      'Wallet Mismatch — Switch to Supplier Wallet'
                     ) : (
                       <>
                         <Truck className="w-4 h-4" />
@@ -931,11 +948,13 @@ export default function OrderDetailPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => executeStep('Delivered', 'confirm_delivery', 'buyer')}
-                    disabled={actionInProgress || !connected}
+                    disabled={actionInProgress || !connected || isWalletMismatchedForStep}
                     className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {actionInProgress ? (
                       'Confirming Delivery on Solana...'
+                    ) : isWalletMismatchedForStep ? (
+                      'Wallet Mismatch — Switch to Buyer Wallet'
                     ) : (
                       <>
                         <PackageCheck className="w-4 h-4" />
@@ -1110,6 +1129,12 @@ export default function OrderDetailPage() {
           </table>
         </div>
       </div>
+
+      {/* Developer & Hackathon Judge Adversarial Attack Inspector */}
+      <AdversarialDemoPanel
+        order={order}
+        currentVaultBalance={vaultUsdcBalance}
+      />
 
       {/* Confirmation Dialog Modal */}
       {confirmModalData && (
