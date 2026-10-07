@@ -273,6 +273,26 @@ async function main() {
     }
   } catch {}
 
+  // If not found in backend store, query on-chain signatures for orderPda
+  if (createTx === 'Confirmed On-Chain' || acceptTx === 'Confirmed On-Chain') {
+    try {
+      const sigs = await conn.getSignaturesForAddress(orderPda);
+      // sigs are ordered from newest to oldest
+      if (sigs.length > 0) {
+        const oldest = sigs[sigs.length - 1];
+        createTx = oldest.signature;
+        createExplorerUrl = `https://explorer.solana.com/tx/${createTx}?cluster=devnet`;
+      }
+      if (sigs.length > 1) {
+        const secondOldest = sigs[sigs.length - 2];
+        acceptTx = secondOldest.signature;
+        acceptExplorerUrl = `https://explorer.solana.com/tx/${acceptTx}?cluster=devnet`;
+      }
+    } catch (e: any) {
+      console.warn(`Could not fetch on-chain signatures for order: ${e.message}`);
+    }
+  }
+
   // Check if Order already exists on Devnet
   let orderAccount: any = null;
   try {
