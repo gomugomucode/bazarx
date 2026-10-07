@@ -21,6 +21,7 @@ import {
 import { UserProfile, UserRole } from '@/lib/types';
 import { shortenAddress, getExplorerAccountUrl } from '@/lib/solana';
 import { RoleSwitcher } from './RoleSwitcher';
+import { SettlementWalletCard } from '../SettlementWalletCard';
 
 interface DashboardHeaderProps {
   profile: UserProfile;
@@ -143,111 +144,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         </div>
       )}
 
-      {/* Settlement Wallet Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
-        {publicKey ? (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-xs shrink-0 ${
-                  isBuyer
-                    ? 'bg-slate-900 text-emerald-400'
-                    : 'bg-slate-900 text-sky-400'
-                }`}
-              >
-                {isBuyer ? (
-                  <ShoppingBag className="w-5 h-5" />
-                ) : (
-                  <Truck className="w-5 h-5" />
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-900">
-                    Settlement Wallet Connected
-                  </span>
-                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Solana Devnet
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                  <span className="font-mono text-slate-700 font-semibold">
-                    {shortenAddress(publicKey.toBase58(), 6)}
-                  </span>
-                  <button
-                    onClick={handleCopyWallet}
-                    className="text-slate-400 hover:text-slate-700 transition-colors"
-                    title="Copy full public key"
-                  >
-                    {copied ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                  <a
-                    href={getExplorerAccountUrl(publicKey.toBase58(), 'devnet')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-0.5 text-slate-400 hover:text-slate-700 transition-colors"
-                    title="View on Solana Explorer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Devnet Balances */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl text-xs self-start md:self-auto">
-              <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-medium">Devnet USDC</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {usdc !== null ? `${usdc} USDC` : '0.00 USDC'}
-                </span>
-              </div>
-              <span className="text-slate-300">|</span>
-              <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-medium">Network Gas</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {sol !== null ? `${sol.toFixed(3)} SOL` : '0.00 SOL'}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Disconnected Settlement Wallet CTA (Does NOT block dashboard access) */
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0">
-                <Wallet className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-900">
-                    Settlement Wallet Not Connected
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                    Devnet Signer
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Connect wallet when you are ready to perform blockchain settlement.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => openWalletModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all shrink-0"
-            >
-              <Wallet className="w-4 h-4 text-emerald-400" />
-              <span>Connect Settlement Wallet</span>
-            </button>
-          </div>
-        )}
+      {/* Settlement Wallet Section with Complete States & Mismatch Guard */}
+      <div id="settlement-wallet">
+        <SettlementWalletCard
+          title={isBuyer ? 'Wholesale Buyer Settlement Wallet' : 'Wholesale Supplier Settlement Wallet'}
+          description="Connect your Solana wallet to approve and sign escrow transactions."
+        />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useWalletBalance } from '@/lib/useWalletBalance';
+import { useAuth } from '@/lib/AuthContext';
 import { shortenAddress, getExplorerAccountUrl } from '@/lib/solana';
 import {
   Wallet,
@@ -16,9 +17,12 @@ import {
   Coins,
   ShieldCheck,
   HelpCircle,
+  AlertTriangle,
 } from 'lucide-react';
+import Link from 'next/link';
 
 export const WalletButton: React.FC = () => {
+  const { user } = useAuth();
   const { publicKey, connected, connecting, disconnect, wallet } = useWallet();
   const { setVisible } = useWalletModal();
   const { sol, usdc, loading: balanceLoading, refresh } = useWalletBalance();
@@ -26,6 +30,13 @@ export const WalletButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isMismatch = Boolean(
+    connected &&
+    publicKey &&
+    user?.wallet &&
+    publicKey.toBase58().toLowerCase() !== user.wallet.trim().toLowerCase()
+  );
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -75,14 +86,14 @@ export const WalletButton: React.FC = () => {
     await disconnect();
   };
 
-  // STATE A: Disconnected -> [ Connect Wallet ]
+  // STATE A: Disconnected -> [ Connect Settlement Wallet ]
   if (!connected || !publicKey) {
     if (connecting) {
       // STATE B: Connecting...
       return (
         <button
           disabled
-          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 font-semibold text-xs sm:text-sm cursor-not-allowed select-none shadow-sm transition-all"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 font-semibold text-xs cursor-not-allowed select-none shadow-xs transition-all"
           title="Connecting to Solana wallet..."
         >
           <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
@@ -94,11 +105,12 @@ export const WalletButton: React.FC = () => {
     return (
       <button
         onClick={() => setVisible(true)}
-        className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98] shrink-0"
-        title="Connect your Solana wallet for on-chain settlement"
+        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs hover:shadow transition-all duration-150 active:scale-[0.98] shrink-0"
+        title="Connect your Solana wallet to approve and sign escrow transactions."
       >
-        <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-        <span>Connect Wallet</span>
+        <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+        <span className="hidden sm:inline">Connect Settlement Wallet</span>
+        <span className="sm:hidden">Wallet</span>
       </button>
     );
   }
@@ -126,18 +138,75 @@ export const WalletButton: React.FC = () => {
       {/* Account Pill Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-medium max-w-[280px] sm:max-w-none ${
+        className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all text-xs font-medium max-w-[200px] sm:max-w-none ${
           isOpen
             ? 'bg-slate-100 border-slate-400 shadow-inner'
-            : 'bg-white hover:bg-slate-50 border-slate-300 shadow-sm'
+            : isMismatch
+            ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 shadow-xs'
+            : 'bg-white hover:bg-slate-50 border-slate-200 shadow-xs'
         }`}
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
         {/* SOL Balance */}
-        <span className="font-mono text-slate-700 hidden sm:inline-block font-semibold">
+        <span className="font-mono text-slate-700 hidden lg:inline-block font-semibold">
           {formattedSol}
         </span>
+
+        <span className="hidden lg:inline-block text-slate-300">|</span>
+
+        {/* Shortened Address */}
+        <div className="flex items-center gap-1.5 font-mono text-slate-900 font-bold truncate">
+          <div
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              isMismatch ? 'bg-amber-500 animate-bounce' : 'bg-emerald-500 animate-pulse'
+            }`}
+          />
+          <span>{truncatedAddress}</span>
+        </div>
+
+        {isMismatch ? (
+          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+            Mismatch
+          </span>
+        ) : (
+          /* Devnet Tag */
+          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 hidden sm:inline-block">
+            DEVNET
+          </span>
+        )}
+
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${
+            isOpen ? 'rotate-180 text-slate-700' : ''
+          }`}
+        />
+      </button>
+
+      {/* Account Dropdown Menu (Guaranteed to fit 375px screens) */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-88 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
+          {/* Mismatch Alert inside dropdown */}
+          {isMismatch && (
+            <div className="p-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-950 flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold block text-amber-900">
+                  Settlement Wallet Mismatch
+                </span>
+                <p className="text-[11px] text-amber-800 leading-snug">
+                  Connected wallet differs from your account&apos;s registered settlement wallet (<code className="font-mono">{shortenAddress(user?.wallet || '', 4)}</code>). On-chain escrow actions are restricted until resolved.
+                </p>
+                <Link
+                  href="/profile"
+                  onClick={() => setIsOpen(false)}
+                  className="inline-block text-[11px] font-bold text-emerald-800 hover:underline pt-0.5"
+                >
+                  Update Linked Wallet in Profile →
+                </Link>
+              </div>
+            </div>
+          )}
 
         <span className="hidden sm:inline-block text-slate-300">|</span>
 

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { shortenAddress, getExplorerAccountUrl } from '@/lib/solana';
+import { SettlementWalletCard } from '@/components/SettlementWalletCard';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -371,7 +372,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Section 3: Solana Settlement Wallet */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+        <div id="wallet" className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Wallet className="w-4 h-4 text-slate-500" />
@@ -391,10 +392,22 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          {/* Active Browser Settlement Wallet Control */}
+          <div className="space-y-2">
+            <span className="text-xs font-semibold text-slate-700 block">
+              Active Browser Wallet Signer
+            </span>
+            <SettlementWalletCard
+              title="Browser Wallet Signer"
+              description="Connect your Solana wallet to approve and sign escrow transactions."
+            />
+          </div>
+
+          {/* Linked Settlement Address on Account */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Linked Settlement Address
+                Account Linked Settlement Address
               </label>
               {user.wallet ? (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
@@ -443,7 +456,7 @@ export default function ProfilePage() {
                   className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
                 >
                   <LinkIcon className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{linking ? 'Linking...' : 'Link Connected Wallet'}</span>
+                  <span>{linking ? 'Linking...' : 'Link Connected Wallet as Settlement Address'}</span>
                 </button>
               ) : !connected ? (
                 <button
@@ -455,9 +468,9 @@ export default function ProfilePage() {
                   <span>Connect Wallet to Link</span>
                 </button>
               ) : (
-                <div className="inline-flex items-center gap-1 text-xs text-emerald-700 font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Active Wallet Linked</span>
+                <div className="inline-flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 font-semibold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Active Browser Wallet is Linked</span>
                 </div>
               )}
             </div>

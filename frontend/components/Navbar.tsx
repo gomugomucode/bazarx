@@ -15,9 +15,11 @@ import {
   ShoppingBag,
   HelpCircle,
   Package,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { WalletButton } from './WalletButton';
+import { SettlementWalletCard } from './SettlementWalletCard';
 import { NetworkStatus } from './NetworkStatus';
 
 export const Navbar = () => {
@@ -53,6 +55,7 @@ export const Navbar = () => {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Orders', href: '/orders', icon: Package },
     { name: 'Profile', href: '/profile', icon: User },
+    { name: 'Settlement Wallet', href: '/dashboard#settlement-wallet', icon: Wallet },
     ...(user?.roles?.includes('ADMIN')
       ? [{ name: 'Admin', href: '/admin', icon: Cpu }]
       : []),
@@ -260,9 +263,17 @@ export const Navbar = () => {
                   </Link>
                 </div>
               ) : (
-                <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="pt-3 border-t border-slate-100 space-y-3">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1">
+                      Settlement Wallet
+                    </span>
+                    <SettlementWalletCard compact />
+                  </div>
+
                   <Link
                     href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50"
                   >
                     <User className="w-4 h-4 text-slate-500" />
