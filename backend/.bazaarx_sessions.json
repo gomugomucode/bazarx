@@ -322,5 +322,17 @@
     "userId": "usr_admin_01",
     "createdAt": "2026-10-07T14:17:12.584Z",
     "expiresAt": "2026-10-14T14:17:12.584Z"
+  },
+  {
+    "token": "cbd09ba548efb4b8187113f27eb9b6ff5b6137faec00d19753a6b8173a02a76d",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-07T14:17:29.689Z",
+    "expiresAt": "2026-10-14T14:17:29.689Z"
+  },
+  {
+    "token": "4a289b35a8c3e748da124a416bcc8005d39fed3c4055fe4b09867d9cb5d22666",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-07T14:17:36.066Z",
+    "expiresAt": "2026-10-14T14:17:36.066Z"
   }
 ]
