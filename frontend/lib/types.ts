@@ -8,6 +8,8 @@ export type OrderState =
   | 'Disputed'
   | 'Refunded';
 
+export type ProductStatus = 'Draft' | 'Published' | 'Archived';
+
 export interface Product {
   id: string;
   name: string;
@@ -18,10 +20,15 @@ export interface Product {
   unit: string;
   minOrder: number;
   availableStock: number;
+  supplierId?: string;
   supplierName: string;
-  supplierLocation: string;
+  supplierLocation?: string;
   supplierWallet: string;
   imageUrl: string;
+  sku?: string;
+  status: ProductStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TransactionRecord {

@@ -296,5 +296,75 @@
     "verificationNotes": "Buyer profile submitted. Verification pending.",
     "createdAt": "2026-10-07T14:19:28.652Z",
     "updatedAt": "2026-10-07T14:19:28.652Z"
+  },
+  {
+    "id": "usr_1791384113206_3dcce6d0",
+    "email": "unrelated_1791384112916@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T14:41:53.206Z",
+    "updatedAt": "2026-10-07T14:41:53.206Z"
+  },
+  {
+    "id": "usr_supplier_02",
+    "email": "supplier2@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Purna Bahadur Gurung",
+    "businessName": "Annapurna Grains & Flour Mills",
+    "phone": "+977-9846123456",
+    "citizenshipNumber": "44-01-71-99887",
+    "panNumber": "302998877",
+    "role": "SUPPLIER",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "verificationStatus": "VERIFIED",
+    "wallet": "SuppL2erAnnapurna1111111111111111111111111111",
+    "createdAt": "2026-10-04T08:00:00.000Z",
+    "updatedAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "id": "usr_supplier_pending",
+    "email": "pending_supplier@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Santosh Neupane",
+    "businessName": "Pokhara Agro Ventures (Pending)",
+    "phone": "+977-9856012345",
+    "citizenshipNumber": "45-01-70-11223",
+    "panNumber": "301122334",
+    "role": "SUPPLIER",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "verificationStatus": "PENDING",
+    "wallet": "9PendingSupplierWallet1111111111111111111111",
+    "createdAt": "2026-10-04T08:00:00.000Z",
+    "updatedAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "id": "usr_1791386171365_7454be0d",
+    "email": "unrelated_1791386171136@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T15:16:11.365Z",
+    "updatedAt": "2026-10-07T15:16:11.365Z"
   }
 ]

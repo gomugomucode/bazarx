@@ -3,6 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import {
   Product,
+  ProductStatus,
   Order,
   OrderState,
   TransactionRecord,
@@ -100,6 +101,38 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     createdAt: '2026-10-04T08:00:00.000Z',
     updatedAt: '2026-10-04T08:00:00.000Z',
   },
+  {
+    id: 'usr_supplier_02',
+    email: 'supplier2@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'Purna Bahadur Gurung',
+    businessName: 'Annapurna Grains & Flour Mills',
+    phone: '+977-9846123456',
+    citizenshipNumber: '44-01-71-99887',
+    panNumber: '302998877',
+    role: 'SUPPLIER',
+    roles: ['SUPPLIER'],
+    verificationStatus: 'VERIFIED',
+    wallet: 'SuppL2erAnnapurna1111111111111111111111111111',
+    createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
+  },
+  {
+    id: 'usr_supplier_pending',
+    email: 'pending_supplier@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'Santosh Neupane',
+    businessName: 'Pokhara Agro Ventures (Pending)',
+    phone: '+977-9856012345',
+    citizenshipNumber: '45-01-70-11223',
+    panNumber: '301122334',
+    role: 'SUPPLIER',
+    roles: ['SUPPLIER'],
+    verificationStatus: 'PENDING',
+    wallet: '9PendingSupplierWallet1111111111111111111111',
+    createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
+  },
 ];
 
 function readJsonFile<T>(filePath: string, fallback: T): T {
@@ -134,15 +167,131 @@ declare global {
   var __bazaarx_sessions: SessionRecord[] | undefined;
 }
 
-export const getProducts = (): Product[] => {
-  const fromDisk = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
-  global.__bazaarx_products = fromDisk;
-  return fromDisk;
+export const getProducts = (filters?: {
+  category?: string | null;
+  search?: string | null;
+  status?: ProductStatus | null;
+  supplierId?: string | null;
+  inStockOnly?: boolean;
+  sortBy?: string | null;
+}): Product[] => {
+  let products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+  global.__bazaarx_products = products;
+
+  if (filters?.supplierId) {
+    products = products.filter((p) => p.supplierId === filters.supplierId);
+  }
+
+  if (filters?.status) {
+    products = products.filter((p) => (p.status || 'Published') === filters.status);
+  } else if (!filters?.supplierId) {
+    products = products.filter((p) => (p.status || 'Published') === 'Published');
+  }
+
+  if (filters?.inStockOnly) {
+    products = products.filter((p) => p.availableStock > 0);
+  }
+
+  if (filters?.category && filters.category !== 'All') {
+    products = products.filter(
+      (p) => p.category.toLowerCase() === filters.category!.toLowerCase()
+    );
+  }
+
+  if (filters?.search) {
+    const q = filters.search.trim().toLowerCase();
+    products = products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        p.supplierName.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q))
+    );
+  }
+
+  if (filters?.sortBy) {
+    switch (filters.sortBy) {
+      case 'price-asc':
+        products.sort((a, b) => a.priceUsdc - b.priceUsdc);
+        break;
+      case 'price-desc':
+        products.sort((a, b) => b.priceUsdc - a.priceUsdc);
+        break;
+      case 'stock-desc':
+        products.sort((a, b) => b.availableStock - a.availableStock);
+        break;
+      case 'name-asc':
+        products.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'newest':
+        products.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        break;
+      default:
+        break;
+    }
+  }
+
+  return products;
 };
 
 export const getProductById = (id: string): Product | undefined => {
-  const products = getProducts();
+  const products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
   return products.find((p) => p.id === id);
+};
+
+export const addProduct = (
+  productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+): Product => {
+  const products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+  const id = productData.id || `prod-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+  const now = new Date().toISOString();
+  const newProduct: Product = {
+    ...productData,
+    id,
+    status: productData.status || 'Published',
+    createdAt: now,
+    updatedAt: now,
+  };
+  products.push(newProduct);
+  writeJsonFile(PRODUCTS_FILE, products);
+  global.__bazaarx_products = products;
+  return newProduct;
+};
+
+export const updateProduct = (
+  id: string,
+  updates: Partial<Product>
+): Product | undefined => {
+  const products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+  const idx = products.findIndex((p) => p.id === id);
+  if (idx === -1) return undefined;
+
+  products[idx] = {
+    ...products[idx],
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  writeJsonFile(PRODUCTS_FILE, products);
+  global.__bazaarx_products = products;
+  return products[idx];
+};
+
+export const archiveProduct = (id: string): Product | undefined => {
+  return updateProduct(id, { status: 'Archived' });
+};
+
+export const deductStock = (productId: string, quantity: number): boolean => {
+  const products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+  const idx = products.findIndex((p) => p.id === productId);
+  if (idx === -1) return false;
+  if (products[idx].availableStock < quantity) return false;
+
+  products[idx].availableStock -= quantity;
+  products[idx].updatedAt = new Date().toISOString();
+  writeJsonFile(PRODUCTS_FILE, products);
+  global.__bazaarx_products = products;
+  return true;
 };
 
 export const getOrders = (wallet?: string | null, role?: string | null): Order[] => {
@@ -261,8 +410,8 @@ export const getOrderById = (id: string): Order | undefined => {
 
 // Users & Sessions
 export const getUsers = (): UserAccount[] => {
-  const users = readJsonFile<any[]>(USERS_FILE, INITIAL_ACCOUNTS);
-  return users.map((u, idx) => {
+  const raw = readJsonFile<any[]>(USERS_FILE, INITIAL_ACCOUNTS);
+  const users = raw.map((u, idx) => {
     if (!u.id) {
       return {
         id: `usr_legacy_${idx}`,
@@ -283,6 +432,20 @@ export const getUsers = (): UserAccount[] => {
     }
     return u as UserAccount;
   });
+
+  const existingEmails = new Set(users.map((u) => u.email.toLowerCase()));
+  let changed = false;
+  for (const initAcc of INITIAL_ACCOUNTS) {
+    if (!existingEmails.has(initAcc.email.toLowerCase())) {
+      users.push(initAcc);
+      changed = true;
+    }
+  }
+  if (changed) {
+    writeJsonFile(USERS_FILE, users);
+  }
+
+  return users;
 };
 
 export const getUserById = (id: string): UserAccount | undefined => {
@@ -390,6 +553,9 @@ export const deleteSession = (token: string): void => {
 };
 
 export const addOrder = (order: Order): Order => {
+  // Atomically deduct product stock
+  deductStock(order.productId, order.quantity);
+
   const orders = getOrders();
   orders.unshift(order);
   global.__bazaarx_orders = orders;

@@ -132,15 +132,39 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Product not found' });
     }
 
+    // Product must be active and published
+    if (product.status && product.status !== 'Published') {
+      return res.status(400).json({
+        success: false,
+        error: 'This product listing is not published or available for purchase.',
+      });
+    }
+
+    // Validate minimum order quantity (MOQ)
+    if (parsedQty < (product.minOrder || 1)) {
+      return res.status(400).json({
+        success: false,
+        error: `Order quantity (${parsedQty}) must meet minimum order quantity (${product.minOrder || 1} ${product.unit}).`,
+      });
+    }
+
+    // Validate available stock
+    if (product.availableStock < parsedQty) {
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient stock available. Requested: ${parsedQty} ${product.unit}, available: ${product.availableStock} ${product.unit}.`,
+      });
+    }
+
     // Buyer cannot trade with themselves
     const effectiveBuyerWallet = (buyerWallet || user.wallet || '').trim().toLowerCase();
     if (
-      effectiveBuyerWallet &&
-      product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet
+      (product.supplierId && product.supplierId === user.id) ||
+      (effectiveBuyerWallet && product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet)
     ) {
       return res.status(400).json({
         success: false,
-        error: 'Supplier wallet cannot be identical to buyer wallet (self-trading prohibited).',
+        error: 'Suppliers cannot purchase their own products (self-trading prohibited).',
       });
     }
 

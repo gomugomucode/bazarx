@@ -165,14 +165,9 @@ export const WalletButton: React.FC = () => {
           <span>{truncatedAddress}</span>
         </div>
 
-        {isMismatch ? (
+        {isMismatch && (
           <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
             Mismatch
-          </span>
-        ) : (
-          /* Devnet Tag */
-          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 hidden sm:inline-block">
-            DEVNET
           </span>
         )}
 

@@ -3,6 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import {
   Product,
+  ProductStatus,
   Order,
   OrderState,
   TransactionRecord,
@@ -14,6 +15,7 @@ import {
 import { INITIAL_PRODUCTS, INITIAL_ORDERS } from './mockData';
 
 const ORDERS_FILE = path.join(process.cwd(), '.bazaarx_orders.json');
+const PRODUCTS_FILE = path.join(process.cwd(), '.bazaarx_products.json');
 const USERS_FILE = path.join(process.cwd(), '.bazaarx_users.json');
 const SESSIONS_FILE = path.join(process.cwd(), '.bazaarx_sessions.json');
 
@@ -99,6 +101,38 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     createdAt: '2026-10-04T08:00:00.000Z',
     updatedAt: '2026-10-04T08:00:00.000Z',
   },
+  {
+    id: 'usr_supplier_02',
+    email: 'supplier2@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'Purna Bahadur Gurung',
+    businessName: 'Annapurna Grains & Flour Mills',
+    phone: '+977-9846123456',
+    citizenshipNumber: '44-01-71-99887',
+    panNumber: '302998877',
+    role: 'SUPPLIER',
+    roles: ['SUPPLIER'],
+    verificationStatus: 'VERIFIED',
+    wallet: 'SuppL2erAnnapurna1111111111111111111111111111',
+    createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
+  },
+  {
+    id: 'usr_supplier_pending',
+    email: 'pending_supplier@bazarx.com',
+    passwordHash: hashPassword('password123'),
+    fullName: 'Santosh Neupane',
+    businessName: 'Pokhara Agro Ventures (Pending)',
+    phone: '+977-9856012345',
+    citizenshipNumber: '45-01-70-11223',
+    panNumber: '301122334',
+    role: 'SUPPLIER',
+    roles: ['SUPPLIER'],
+    verificationStatus: 'PENDING',
+    wallet: '9PendingSupplierWallet1111111111111111111111',
+    createdAt: '2026-10-04T08:00:00.000Z',
+    updatedAt: '2026-10-04T08:00:00.000Z',
+  },
 ];
 
 function readJsonFile<T>(filePath: string, fallback: T): T {
@@ -122,7 +156,13 @@ function writeJsonFile<T>(filePath: string, data: T): void {
 }
 
 class Store {
-  private products: Product[] = [...INITIAL_PRODUCTS];
+  private getProductsFromDisk(): Product[] {
+    return readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+  }
+
+  private saveProductsToDisk(products: Product[]): void {
+    writeJsonFile(PRODUCTS_FILE, products);
+  }
 
   private getOrdersFromDisk(): Order[] {
     return readJsonFile<Order[]>(ORDERS_FILE, INITIAL_ORDERS);
@@ -135,7 +175,7 @@ class Store {
   private getUsersFromDisk(): UserAccount[] {
     const raw = readJsonFile<any[]>(USERS_FILE, INITIAL_ACCOUNTS);
     // Migrate legacy profile objects if necessary
-    return raw.map((u, idx) => {
+    const users = raw.map((u, idx) => {
       if (!u.id) {
         return {
           id: `usr_legacy_${idx}`,
@@ -156,6 +196,20 @@ class Store {
       }
       return u as UserAccount;
     });
+
+    const existingEmails = new Set(users.map((u) => u.email.toLowerCase()));
+    let changed = false;
+    for (const initAcc of INITIAL_ACCOUNTS) {
+      if (!existingEmails.has(initAcc.email.toLowerCase())) {
+        users.push(initAcc);
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.saveUsersToDisk(users);
+    }
+
+    return users;
   }
 
   private saveUsersToDisk(users: UserAccount[]): void {
@@ -253,15 +307,123 @@ class Store {
   }
 
   // --- Products ---
-  getProducts(category?: string | null): Product[] {
-    if (category && category !== 'All') {
-      return this.products.filter((p) => p.category === category);
+  getProducts(filters?: {
+    category?: string | null;
+    search?: string | null;
+    status?: ProductStatus | null;
+    supplierId?: string | null;
+    inStockOnly?: boolean;
+    sortBy?: string | null;
+  }): Product[] {
+    let products = this.getProductsFromDisk();
+
+    if (filters?.supplierId) {
+      products = products.filter((p) => p.supplierId === filters.supplierId);
     }
-    return this.products;
+
+    if (filters?.status) {
+      products = products.filter((p) => (p.status || 'Published') === filters.status);
+    } else if (!filters?.supplierId) {
+      // Default public buyer marketplace: only Published products
+      products = products.filter((p) => (p.status || 'Published') === 'Published');
+    }
+
+    if (filters?.inStockOnly) {
+      products = products.filter((p) => p.availableStock > 0);
+    }
+
+    if (filters?.category && filters.category !== 'All') {
+      products = products.filter(
+        (p) => p.category.toLowerCase() === filters.category!.toLowerCase()
+      );
+    }
+
+    if (filters?.search) {
+      const q = filters.search.trim().toLowerCase();
+      products = products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.supplierName.toLowerCase().includes(q) ||
+          (p.sku && p.sku.toLowerCase().includes(q))
+      );
+    }
+
+    if (filters?.sortBy) {
+      switch (filters.sortBy) {
+        case 'price-asc':
+          products.sort((a, b) => a.priceUsdc - b.priceUsdc);
+          break;
+        case 'price-desc':
+          products.sort((a, b) => b.priceUsdc - a.priceUsdc);
+          break;
+        case 'stock-desc':
+          products.sort((a, b) => b.availableStock - a.availableStock);
+          break;
+        case 'name-asc':
+          products.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case 'newest':
+          products.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+          break;
+        default:
+          break;
+      }
+    }
+
+    return products;
   }
 
   getProductById(id: string): Product | undefined {
-    return this.products.find((p) => p.id === id);
+    const products = this.getProductsFromDisk();
+    return products.find((p) => p.id === id);
+  }
+
+  addProduct(productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Product {
+    const products = this.getProductsFromDisk();
+    const id = productData.id || `prod-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const now = new Date().toISOString();
+    const newProduct: Product = {
+      ...productData,
+      id,
+      status: productData.status || 'Published',
+      createdAt: now,
+      updatedAt: now,
+    };
+    products.push(newProduct);
+    this.saveProductsToDisk(products);
+    return newProduct;
+  }
+
+  updateProduct(id: string, updates: Partial<Product>): Product | undefined {
+    const products = this.getProductsFromDisk();
+    const idx = products.findIndex((p) => p.id === id);
+    if (idx === -1) return undefined;
+
+    products[idx] = {
+      ...products[idx],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveProductsToDisk(products);
+    return products[idx];
+  }
+
+  archiveProduct(id: string): Product | undefined {
+    return this.updateProduct(id, { status: 'Archived' });
+  }
+
+  deductStock(productId: string, quantity: number): boolean {
+    const products = this.getProductsFromDisk();
+    const idx = products.findIndex((p) => p.id === productId);
+    if (idx === -1) return false;
+    if (products[idx].availableStock < quantity) return false;
+
+    products[idx].availableStock -= quantity;
+    products[idx].updatedAt = new Date().toISOString();
+    this.saveProductsToDisk(products);
+    return true;
   }
 
   // --- Orders ---
@@ -377,6 +539,9 @@ class Store {
   }
 
   addOrder(order: Order): Order {
+    // Atomically deduct product stock
+    this.deductStock(order.productId, order.quantity);
+
     const orders = this.getOrdersFromDisk();
     orders.unshift(order);
     this.saveOrdersToDisk(orders);

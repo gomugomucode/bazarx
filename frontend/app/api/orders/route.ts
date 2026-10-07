@@ -143,18 +143,51 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: 'Product not found' }, { status: 400 });
       }
 
-      const effectiveBuyerWallet = (body.buyerWallet || user.wallet || '').trim().toLowerCase();
-      if (
-        effectiveBuyerWallet &&
-        product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet
-      ) {
+      if (product.status && product.status !== 'Published') {
         return NextResponse.json(
-          { success: false, error: 'Supplier wallet cannot be identical to buyer wallet (self-trading prohibited).' },
+          { success: false, error: 'This product listing is not published or available for purchase.' },
           { status: 400 }
         );
       }
 
-      const parsedQty = Number(body.quantity) || 1;
+      const parsedQty = Number(body.quantity);
+      if (isNaN(parsedQty) || parsedQty <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'Order quantity must be greater than zero.' },
+          { status: 400 }
+        );
+      }
+
+      if (parsedQty < (product.minOrder || 1)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Order quantity (${parsedQty}) must meet minimum order quantity (${product.minOrder || 1} ${product.unit}).`,
+          },
+          { status: 400 }
+        );
+      }
+
+      if (product.availableStock < parsedQty) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Insufficient stock available. Requested: ${parsedQty} ${product.unit}, available: ${product.availableStock} ${product.unit}.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const effectiveBuyerWallet = (body.buyerWallet || user.wallet || '').trim().toLowerCase();
+      if (
+        (product.supplierId && product.supplierId === user.id) ||
+        (effectiveBuyerWallet && product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet)
+      ) {
+        return NextResponse.json(
+          { success: false, error: 'Suppliers cannot purchase their own products (self-trading prohibited).' },
+          { status: 400 }
+        );
+      }
       const orderIdNum = body.blockchainOrderId || Math.floor(10000 + Math.random() * 90000);
       const isReal = Boolean(
         body.signature && !body.signature.startsWith('simulated') && !body.signature.startsWith('sim_')

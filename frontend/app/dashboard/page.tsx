@@ -14,7 +14,7 @@ import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { ActionRequiredCard } from '@/components/dashboard/ActionRequiredCard';
 import { OrdersSection } from '@/components/dashboard/OrdersSection';
 import { AdminBanner } from '@/components/dashboard/AdminBanner';
-import { Lock, ArrowRight } from 'lucide-react';
+import { Lock, ArrowRight, Boxes } from 'lucide-react';
 
 function UnifiedDashboardContent() {
   const router = useRouter();
@@ -152,6 +152,33 @@ function UnifiedDashboardContent() {
         activeRole={activeRole}
         orders={orders}
       />
+
+      {/* Supplier Products Quick Action Banner */}
+      {activeRole === 'SUPPLIER' && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center shrink-0">
+              <Boxes className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-xs sm:text-sm">
+                Wholesale Product Listings & Inventory
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Manage your published commodities, add new products, and adjust warehouse stock.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/products"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-colors shrink-0"
+            id="supplier-dashboard-manage-products"
+          >
+            <span>Manage Products</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Highest Priority Action Required Card */}
       <ActionRequiredCard
