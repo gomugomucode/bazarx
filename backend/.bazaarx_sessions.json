@@ -300,12 +300,6 @@
     "expiresAt": "2026-10-14T13:53:42.953Z"
   },
   {
-    "token": "e7e0528f8e1ab90511d233796dee3ad53802071e221289d126df8bcc18314a78",
-    "userId": "usr_buyer_01",
-    "createdAt": "2026-10-07T14:03:39.367Z",
-    "expiresAt": "2026-10-14T14:03:39.367Z"
-  },
-  {
     "token": "3c9f5462aa1a132b31113541e057c6e5604bdec53d9e9c0b6284b8ca136ccd6f",
     "userId": "usr_buyer_01",
     "createdAt": "2026-10-07T14:17:12.549Z",
@@ -334,5 +328,47 @@
     "userId": "usr_buyer_01",
     "createdAt": "2026-10-07T14:17:36.066Z",
     "expiresAt": "2026-10-14T14:17:36.066Z"
+  },
+  {
+    "token": "80bf02885d542eccd6040a24f5726a8a689812486a3c2d2532215f57c0993064",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-07T14:19:11.528Z",
+    "expiresAt": "2026-10-14T14:19:11.528Z"
+  },
+  {
+    "token": "4be67470b88e5335ec8911585e2d81a2e5807d29819f7f5b7f11fb4aa21244bf",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-07T14:19:11.554Z",
+    "expiresAt": "2026-10-14T14:19:11.554Z"
+  },
+  {
+    "token": "d73962e7bcef0e2e0b7af23a778e1c11301a40376ccb61132ae0c3dc8b09de31",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-07T14:19:11.570Z",
+    "expiresAt": "2026-10-14T14:19:11.570Z"
+  },
+  {
+    "token": "7b95017e3325f85df878c3d82782beccdabc9a057a37173484dcf420f142fb48",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-07T14:19:24.355Z",
+    "expiresAt": "2026-10-14T14:19:24.355Z"
+  },
+  {
+    "token": "78084f9a00fa9947998f553a564455b46554961c658fc2f699f64da77e289228",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-07T14:19:24.376Z",
+    "expiresAt": "2026-10-14T14:19:24.376Z"
+  },
+  {
+    "token": "00fe3f13897cb1c3bd7b17ac843a76aa800189568c463898b98c00741f8bb6d3",
+    "userId": "usr_1791382768652_21814dc5",
+    "createdAt": "2026-10-07T14:19:28.654Z",
+    "expiresAt": "2026-10-14T14:19:28.654Z"
+  },
+  {
+    "token": "206e05d040fcd08a48ef635799dfb8d3832270f0b198a8060b370181d25950c7",
+    "userId": "usr_1791187506915_5838f7ea",
+    "createdAt": "2026-10-07T14:20:05.312Z",
+    "expiresAt": "2026-10-14T14:20:05.312Z"
   }
 ]
