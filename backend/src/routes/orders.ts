@@ -43,13 +43,21 @@ router.get('/', (req: Request, res: Response) => {
   // Admin can view all orders or filter by query parameters
   if (isAdmin) {
     const queryWallet = req.query.wallet as string | undefined;
-    const orders = store.getOrders(queryWallet, role);
+    const queryState = req.query.state as string | undefined;
+    const querySearch = req.query.search as string | undefined;
+    const queryProduct = req.query.productId as string | undefined;
+    const orders = store.getAllOrders({
+      wallet: queryWallet,
+      role,
+      state: queryState,
+      search: querySearch,
+      productId: queryProduct,
+    });
     return res.json({ success: true, orders });
   }
 
-  // Non-admin users are strictly scoped to their own registered settlement wallet
-  const targetWallet = user.wallet || undefined;
-  const orders = store.getOrders(targetWallet, role);
+  // Non-admin users are strictly scoped to their own orders based on authenticated identity
+  const orders = store.getOrdersForUser(user, role);
   return res.json({ success: true, orders });
 });
 

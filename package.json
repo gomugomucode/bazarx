@@ -9,6 +9,8 @@
     "dev:backend": "npm run dev --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
+    "test:acceptance": "node scripts/test-acceptance.mjs",
+    "test:visibility": "node scripts/test_role_visibility.mjs",
     "test:boundary": "npx tsx scripts/test_boundary_failures.ts",
     "test:security": "npx tsx scripts/test_security_devnet.ts"
   },

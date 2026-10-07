@@ -245,5 +245,39 @@
     "verificationNotes": "Buyer profile submitted. Verification pending.",
     "createdAt": "2026-10-05T08:23:09.443Z",
     "updatedAt": "2026-10-05T08:23:09.443Z"
+  },
+  {
+    "id": "usr_1791381027983_9631fe56",
+    "email": "unrelated_1791381027581@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T13:50:27.983Z",
+    "updatedAt": "2026-10-07T13:50:27.983Z"
+  },
+  {
+    "id": "usr_1791381222951_e90579e3",
+    "email": "unrelated_1791381222647@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T13:53:42.951Z",
+    "updatedAt": "2026-10-07T13:53:42.951Z"
   }
 ]

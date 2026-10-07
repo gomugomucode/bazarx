@@ -60,10 +60,9 @@ function UnifiedDashboardContent() {
     setOrdersLoading(true);
 
     try {
-      const targetWallet = user.wallet || (connected && publicKey ? publicKey.toBase58() : '');
       const roleStr = activeRole.toLowerCase();
       const res = await fetch(
-        `/api/orders?wallet=${encodeURIComponent(targetWallet)}&role=${encodeURIComponent(roleStr)}`,
+        `/api/orders?role=${encodeURIComponent(roleStr)}`,
         { cache: 'no-store' }
       );
       const data = await res.json();

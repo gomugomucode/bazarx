@@ -265,8 +265,8 @@ export default function ProductDetailPage() {
                 <Building className="w-4 h-4 text-slate-500" />
                 Wholesale Supplier Details
               </h3>
-              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                KYB Verified
+              <span className="text-[11px] font-semibold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                Registered Supplier
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">

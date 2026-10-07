@@ -269,15 +269,103 @@ class Store {
     const orders = this.getOrdersFromDisk();
     if (wallet) {
       const target = wallet.trim().toLowerCase();
-      if (role === 'buyer') {
+      if (role?.toLowerCase() === 'buyer') {
         return orders.filter((o) => o.buyerWallet.toLowerCase() === target);
-      } else if (role === 'supplier') {
+      } else if (role?.toLowerCase() === 'supplier') {
         return orders.filter((o) => o.supplierWallet.toLowerCase() === target);
       }
       return orders.filter(
         (o) =>
           o.buyerWallet.toLowerCase() === target ||
           o.supplierWallet.toLowerCase() === target
+      );
+    }
+    return orders;
+  }
+
+  getOrdersForUser(user: UserAccount, roleFilter?: string | null): Order[] {
+    const orders = this.getOrdersFromDisk();
+    const userWallet = user.wallet ? user.wallet.trim().toLowerCase() : null;
+    const userEmail = user.email ? user.email.trim().toLowerCase() : null;
+    const businessName = user.businessName ? user.businessName.trim() : null;
+    const fullName = user.fullName ? user.fullName.trim() : null;
+
+    const isBuyer = (o: Order): boolean => {
+      if (userWallet && o.buyerWallet && o.buyerWallet.trim().toLowerCase() === userWallet) return true;
+      if (userEmail && o.buyerEmail && o.buyerEmail.trim().toLowerCase() === userEmail) return true;
+      if (businessName && o.buyerName === businessName) return true;
+      if (fullName && o.buyerName === fullName) return true;
+      return false;
+    };
+
+    const isSupplier = (o: Order): boolean => {
+      if (userWallet && o.supplierWallet && o.supplierWallet.trim().toLowerCase() === userWallet) return true;
+      if (userEmail && o.supplierEmail && o.supplierEmail.trim().toLowerCase() === userEmail) return true;
+      if (businessName && o.supplierName === businessName) return true;
+      return false;
+    };
+
+    const userRoles = (user.roles || [user.role]).map((r) => r.toUpperCase());
+    const normFilter = roleFilter ? roleFilter.toUpperCase() : null;
+
+    if (normFilter === 'BUYER') {
+      if (!userRoles.includes('BUYER') && !userRoles.includes('ADMIN')) return [];
+      return orders.filter(isBuyer);
+    }
+    if (normFilter === 'SUPPLIER') {
+      if (!userRoles.includes('SUPPLIER') && !userRoles.includes('ADMIN')) return [];
+      return orders.filter(isSupplier);
+    }
+
+    // If no role filter was requested:
+    if (userRoles.includes('BUYER') && !userRoles.includes('SUPPLIER')) {
+      return orders.filter(isBuyer);
+    }
+    if (userRoles.includes('SUPPLIER') && !userRoles.includes('BUYER')) {
+      return orders.filter(isSupplier);
+    }
+    return orders.filter((o) => isBuyer(o) || isSupplier(o));
+  }
+
+  getAllOrders(filters?: {
+    wallet?: string;
+    role?: string;
+    state?: string;
+    productId?: string;
+    search?: string;
+  }): Order[] {
+    let orders = this.getOrdersFromDisk();
+    if (!filters) return orders;
+
+    if (filters.wallet) {
+      const w = filters.wallet.trim().toLowerCase();
+      if (filters.role?.toUpperCase() === 'BUYER') {
+        orders = orders.filter((o) => o.buyerWallet.toLowerCase() === w);
+      } else if (filters.role?.toUpperCase() === 'SUPPLIER') {
+        orders = orders.filter((o) => o.supplierWallet.toLowerCase() === w);
+      } else {
+        orders = orders.filter(
+          (o) => o.buyerWallet.toLowerCase() === w || o.supplierWallet.toLowerCase() === w
+        );
+      }
+    }
+    if (filters.state && filters.state !== 'All') {
+      orders = orders.filter((o) => o.state.toLowerCase() === filters.state!.toLowerCase());
+    }
+    if (filters.productId) {
+      orders = orders.filter((o) => o.productId === filters.productId);
+    }
+    if (filters.search) {
+      const q = filters.search.trim().toLowerCase();
+      orders = orders.filter(
+        (o) =>
+          o.productName.toLowerCase().includes(q) ||
+          String(o.blockchainOrderId).includes(q) ||
+          o.id.toLowerCase().includes(q) ||
+          o.buyerName.toLowerCase().includes(q) ||
+          o.supplierName.toLowerCase().includes(q) ||
+          o.buyerWallet.toLowerCase().includes(q) ||
+          o.supplierWallet.toLowerCase().includes(q)
       );
     }
     return orders;

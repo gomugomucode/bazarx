@@ -51,7 +51,8 @@ export const Navbar = () => {
   const authenticatedLinks = [
     { name: 'Marketplace', href: '/marketplace', icon: Store },
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Orders', href: '/dashboard#orders', icon: Package },
+    { name: 'Orders', href: '/orders', icon: Package },
+    { name: 'Profile', href: '/profile', icon: User },
     ...(user?.roles?.includes('ADMIN')
       ? [{ name: 'Admin', href: '/admin', icon: Cpu }]
       : []),

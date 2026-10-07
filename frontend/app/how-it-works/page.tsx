@@ -114,49 +114,49 @@ export default function HowItWorksPage() {
       </div>
 
       {/* Architecture Comparison: Application vs Blockchain */}
-      <div className="bg-slate-900 text-white rounded-3xl p-8 sm:p-10 space-y-6">
+      <div className="bg-white rounded-3xl p-8 sm:p-10 space-y-6 border border-slate-200 shadow-2xs">
         <div className="max-w-2xl space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-            <Cpu className="w-4 h-4" /> Architectural Boundary
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+            <Cpu className="w-4 h-4 text-emerald-600" /> Architectural Boundary
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Application Identity vs Settlement Signer
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
             BazaarX separates business identity from cryptographic signing. Application authentication lets you manage your enterprise workflows without needing your hardware wallet connected at all times.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 space-y-2">
-            <div className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Application Layer
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-2">
+            <div className="text-emerald-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Application Layer
             </div>
-            <p className="text-xs text-slate-300">
-              Handles email authentication, verified company profile, product cataloging, and dashboard views. No blockchain keys or secret phrases are ever stored.
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Handles email authentication, business profile verification, product cataloging, and dashboard views. No blockchain private keys or seed phrases are ever held or accessed.
             </p>
           </div>
-          <div className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-5 space-y-2">
-            <div className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" /> Solana Settlement Layer
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-2">
+            <div className="text-emerald-800 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-emerald-600" /> Solana Settlement Layer
             </div>
-            <p className="text-xs text-slate-300">
-              Your Solana wallet signs high-value financial actions directly on-chain: funding escrow, accepting orders, and releasing funds via Anchor program PDAs.
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Your Solana settlement wallet signs high-value financial actions directly on-chain: funding escrow, accepting orders, and releasing funds via Anchor program PDAs.
             </p>
           </div>
         </div>
 
-        <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+        <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
           <Link
             href="/register"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all shadow-md"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-2xs"
           >
             <span>Create Business Account</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
             href="/marketplace"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-all"
           >
             Browse Marketplace
           </Link>

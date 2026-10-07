@@ -86,6 +86,20 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const authHeader = request.headers.get('authorization') || '';
+  const match = cookieHeader.match(/bazarx_session=([^;]+)/);
+  const token =
+    (authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined) ||
+    (match ? decodeURIComponent(match[1]) : undefined);
+
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: 'Authentication required to update order state.' },
+      { status: 401 }
+    );
+  }
+
   let body: any;
   try {
     body = await request.json();
@@ -96,18 +110,31 @@ export async function PATCH(
   try {
     const res = await fetch(`${BACKEND_URL}/api/orders/${params.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader,
+        Authorization: authHeader,
+      },
       body: JSON.stringify(body),
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({ error: `Backend status: ${res.status}` }));
-      return NextResponse.json(errData, { status: res.status });
-    }
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err: any) {
     try {
-      const { getOrderById, updateOrderState } = await import('@/lib/store');
+      const { getOrderById, updateOrderState, getSession, getUserById } = await import('@/lib/store');
+      const session = getSession(token);
+      if (!session) {
+        return NextResponse.json(
+          { success: false, error: 'Authentication required. Session expired.' },
+          { status: 401 }
+        );
+      }
+
+      const user = getUserById(session.userId);
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'User account not found' }, { status: 401 });
+      }
+
       const existing = getOrderById(params.id);
       if (!existing) {
         return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
@@ -123,25 +150,62 @@ export async function PATCH(
 
       const validNext = VALID_TRANSITIONS[existing.state] || [];
       if (!validNext.includes(body.nextState)) {
-        return NextResponse.json({
-          success: false,
-          error: `Invalid state transition: Cannot transition from '${existing.state}' to '${body.nextState}'.`,
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid state transition: Cannot transition from '${existing.state}' to '${body.nextState}'. Valid next states: [${validNext.join(', ')}]`,
+          },
+          { status: 400 }
+        );
       }
 
-      const isReal = Boolean(body.signature && !body.signature.startsWith('simulated') && !body.signature.startsWith('sim_'));
+      // Validate Counterparty Authorization
+      const isAdmin = user.roles?.includes('ADMIN') || user.role === 'ADMIN';
+      const isBuyer =
+        Boolean(user.wallet && existing.buyerWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+        Boolean(user.email && existing.buyerEmail?.toLowerCase() === user.email.toLowerCase()) ||
+        existing.buyerName === user.businessName ||
+        existing.buyerName === user.fullName;
+      const isSupplier =
+        Boolean(user.wallet && existing.supplierWallet.toLowerCase() === user.wallet.toLowerCase()) ||
+        Boolean(user.email && existing.supplierEmail?.toLowerCase() === user.email.toLowerCase()) ||
+        existing.supplierName === user.businessName;
+
+      if (['Accepted', 'Shipped'].includes(body.nextState) && !isSupplier && !isAdmin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Unauthorized: Only the designated supplier can advance the order to '${body.nextState}'.`,
+          },
+          { status: 403 }
+        );
+      }
+
+      if (['Funded', 'Delivered'].includes(body.nextState) && !isBuyer && !isAdmin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Unauthorized: Only the designated buyer can advance the order to '${body.nextState}'.`,
+          },
+          { status: 403 }
+        );
+      }
+
+      const isReal = Boolean(
+        body.signature && !body.signature.startsWith('simulated') && !body.signature.startsWith('sim_')
+      );
       const updated = updateOrderState(params.id, body.nextState, {
         step: body.nextState,
         signature: isReal ? body.signature : undefined,
         timestamp: new Date().toISOString(),
-        signer: body.signer || 'Signer',
+        signer: body.signer || user.wallet || 'Signer',
         explorerUrl: isReal ? `https://explorer.solana.com/tx/${body.signature}?cluster=devnet` : undefined,
-        action: body.action || 'update',
+        action: body.action || `execute_${body.nextState.toLowerCase()}`,
         isSimulated: !isReal,
       });
       return NextResponse.json({ success: !!updated, order: updated });
     } catch (e: any) {
-      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: e.message }, { status: 500 });
     }
   }
 }
