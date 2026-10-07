@@ -208,29 +208,6 @@ export const WalletButton: React.FC = () => {
             </div>
           )}
 
-        <span className="hidden sm:inline-block text-slate-300">|</span>
-
-        {/* Shortened Address */}
-        <div className="flex items-center gap-1.5 font-mono text-slate-900 font-bold truncate">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>{truncatedAddress}</span>
-        </div>
-
-        {/* Devnet Tag */}
-        <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 hidden md:inline-block">
-          DEVNET
-        </span>
-
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${
-            isOpen ? 'rotate-180 text-slate-700' : ''
-          }`}
-        />
-      </button>
-
-      {/* Account Dropdown Menu (Guaranteed to fit 375px screens) */}
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-88 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Section 1: WALLET & NETWORK */}
           <div className="p-4 bg-slate-50/80 flex items-center justify-between">
             <div className="flex items-center gap-2 truncate pr-2">
