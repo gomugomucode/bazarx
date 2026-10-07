@@ -304,5 +304,23 @@
     "userId": "usr_buyer_01",
     "createdAt": "2026-10-07T14:03:39.367Z",
     "expiresAt": "2026-10-14T14:03:39.367Z"
+  },
+  {
+    "token": "3c9f5462aa1a132b31113541e057c6e5604bdec53d9e9c0b6284b8ca136ccd6f",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-07T14:17:12.549Z",
+    "expiresAt": "2026-10-14T14:17:12.549Z"
+  },
+  {
+    "token": "521ced14c5def55be57a9b132b9b6ffa68cad2a5aa69208d7d8ca951c811c568",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-07T14:17:12.567Z",
+    "expiresAt": "2026-10-14T14:17:12.567Z"
+  },
+  {
+    "token": "82864689e68aac445567bac903e388b4e150405cd31f7c2706744cc7e82175f8",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-07T14:17:12.584Z",
+    "expiresAt": "2026-10-14T14:17:12.584Z"
   }
 ]
