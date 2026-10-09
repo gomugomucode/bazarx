@@ -187,18 +187,24 @@ export default function ProductDetailPage() {
           await connection.confirmTransaction(realSignature, 'confirmed');
           setTxStage('confirmed');
         } catch (chainErr: any) {
-          console.warn('On-chain transaction skipped or failed:', chainErr);
-          // If user explicitly cancelled phantom popup, stop
+          console.error('On-chain order creation failed:', chainErr);
+          setCreating(false);
+          setTxStage('failed');
+          const rawMsg = chainErr.message || String(chainErr);
+          const lower = rawMsg.toLowerCase();
           if (
-            chainErr.message?.toLowerCase().includes('reject') ||
-            chainErr.message?.toLowerCase().includes('declined') ||
-            chainErr.message?.toLowerCase().includes('user rejected')
+            lower.includes('reject') ||
+            lower.includes('declined') ||
+            lower.includes('user rejected') ||
+            lower.includes('cancel')
           ) {
-            setErrorMsg('Wallet signature request was cancelled.');
-            setCreating(false);
-            setTxStage('failed');
-            return;
+            setErrorMsg('Wallet signature request was cancelled by user.');
+          } else if (rawMsg.includes('0x1') || lower.includes('insufficient lamports') || lower.includes('insufficient funds')) {
+            setErrorMsg('Insufficient SOL to pay for order account rent on Solana Devnet.');
+          } else {
+            setErrorMsg(`Solana transaction failed: ${rawMsg.slice(0, 160)}`);
           }
+          return;
         }
       }
 
@@ -488,14 +494,18 @@ export default function ProductDetailPage() {
             {creating ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Creating Wholesale Order...</span>
+                <span>{connected ? 'Submitting to Solana Devnet...' : 'Creating Order Record...'}</span>
               </>
             ) : isOwner ? (
               <span>Self-Trading Prohibited</span>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>Place Order (${totalAmountUsdc.toFixed(2)} USDC)</span>
+                <span>
+                  {connected
+                    ? `Sign & Create Order (${totalAmountUsdc.toFixed(2)} USDC)`
+                    : `Place Order (Draft - Connect Wallet to Sign)`}
+                </span>
               </>
             )}
           </button>

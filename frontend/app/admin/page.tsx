@@ -511,8 +511,8 @@ export default function AdminProtocolPage() {
                                 <ExternalLink className="w-2.5 h-2.5" />
                               </a>
                             ) : (
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                PDA: {shortenAddress(ord.orderPda, 4)}
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                Off-Chain Record
                               </span>
                             )}
                           </td>
