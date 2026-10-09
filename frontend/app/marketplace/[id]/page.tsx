@@ -484,6 +484,29 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          {/* Settlement Wallet Connection Indicator / Trigger */}
+          {!connected ? (
+            <button
+              type="button"
+              onClick={() => openWalletModal(true)}
+              className="w-full py-2.5 rounded-xl border border-slate-300 hover:border-slate-400 bg-white text-slate-800 font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-2xs hover:bg-slate-50"
+              id="btn-connect-wallet-detail"
+            >
+              <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Connect Settlement Wallet</span>
+            </button>
+          ) : (
+            <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <div className="flex items-center gap-2 font-mono text-slate-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-bold text-[11px]">{shortenAddress(publicKey?.toBase58() || '', 4)}</span>
+              </div>
+              <span className="text-[10px] font-bold uppercase text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                Solana Devnet
+              </span>
+            </div>
+          )}
+
           {/* Action CTA: Place Order */}
           <button
             onClick={handleCreateOrder}
