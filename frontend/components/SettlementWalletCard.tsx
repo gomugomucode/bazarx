@@ -37,7 +37,7 @@ export const SettlementWalletCard: React.FC<SettlementWalletCardProps> = ({
   showBalances = true,
 }) => {
   const { user } = useAuth();
-  const { publicKey, connected, connecting, disconnect, wallet } = useWallet();
+  const { publicKey, connected, connecting, disconnect, wallet, connect } = useWallet();
   const { setVisible: openWalletModal } = useWalletModal();
   const { sol, usdc, loading: balanceLoading, refresh } = useWalletBalance();
 
@@ -150,8 +150,19 @@ export const SettlementWalletCard: React.FC<SettlementWalletCardProps> = ({
 
           <button
             type="button"
-            onClick={() => openWalletModal(true)}
+            onClick={async () => {
+              if (wallet) {
+                try {
+                  await connect();
+                  return;
+                } catch {
+                  // Fall back to modal
+                }
+              }
+              openWalletModal(true);
+            }}
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm hover:shadow transition-all shrink-0 active:scale-[0.99]"
+            id="btn-card-connect-settlement-wallet"
           >
             <Wallet className="w-4 h-4 text-emerald-400" />
             <span>Connect Settlement Wallet</span>

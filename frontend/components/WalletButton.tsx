@@ -23,7 +23,7 @@ import Link from 'next/link';
 
 export const WalletButton: React.FC = () => {
   const { user } = useAuth();
-  const { publicKey, connected, connecting, disconnect, wallet } = useWallet();
+  const { publicKey, connected, connecting, disconnect, wallet, connect } = useWallet();
   const { setVisible } = useWalletModal();
   const { sol, usdc, loading: balanceLoading, refresh } = useWalletBalance();
 
@@ -102,11 +102,24 @@ export const WalletButton: React.FC = () => {
       );
     }
 
+    const handleConnectClick = async () => {
+      if (wallet) {
+        try {
+          await connect();
+          return;
+        } catch {
+          // If direct connect fails or is cancelled, open selection modal
+        }
+      }
+      setVisible(true);
+    };
+
     return (
       <button
-        onClick={() => setVisible(true)}
+        onClick={handleConnectClick}
         className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs hover:shadow transition-all duration-150 active:scale-[0.98] shrink-0"
         title="Connect your Solana wallet to approve and sign escrow transactions."
+        id="btn-connect-settlement-wallet"
       >
         <Wallet className="w-3.5 h-3.5 text-emerald-400" />
         <span className="hidden sm:inline">Connect Settlement Wallet</span>
@@ -332,9 +345,15 @@ export const WalletButton: React.FC = () => {
 
           {/* Section 4: SECURITY & DISCONNECT */}
           <div className="p-3 bg-slate-50/80 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-slate-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Non-custodial settlement
-            </span>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setVisible(true);
+              }}
+              className="text-[11px] text-slate-600 hover:text-slate-900 font-semibold hover:underline"
+            >
+              Change Wallet
+            </button>
 
             <button
               onClick={handleDisconnect}
