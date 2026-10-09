@@ -110,14 +110,7 @@ router.post('/', (req: Request, res: Response) => {
       });
     }
 
-    // Verification check: pending or rejected suppliers cannot publish
-    if (user.verificationStatus === 'PENDING') {
-      return res.status(403).json({
-        success: false,
-        error:
-          'Supplier business verification is pending approval. You will be able to publish products once compliance review is complete.',
-      });
-    }
+    // Verification check: rejected suppliers cannot list or draft products
     if (user.verificationStatus === 'REJECTED') {
       return res.status(403).json({
         success: false,
@@ -141,6 +134,18 @@ router.post('/', (req: Request, res: Response) => {
       sku,
       status,
     } = req.body;
+
+    // Requested status validation: default to Published if not explicitly Draft
+    const requestedStatus: ProductStatus = status === 'Draft' ? 'Draft' : 'Published';
+
+    // Compliance verification check: pending suppliers can save private drafts, but cannot publish to the marketplace
+    if (requestedStatus === 'Published' && user.verificationStatus === 'PENDING') {
+      return res.status(403).json({
+        success: false,
+        error:
+          'Supplier business verification is pending approval. You will be able to publish products once compliance review is complete.',
+      });
+    }
 
     // Field validations
     if (!name || typeof name !== 'string' || name.trim().length < 3) {
@@ -200,8 +205,7 @@ router.post('/', (req: Request, res: Response) => {
       });
     }
 
-    const publicationStatus: ProductStatus =
-      status === 'Draft' ? 'Draft' : 'Published';
+    const publicationStatus: ProductStatus = requestedStatus;
 
     // High quality default image fallback if not provided
     const defaultImage =
@@ -320,6 +324,13 @@ router.put('/:id', (req: Request, res: Response) => {
     if (status !== undefined) {
       if (!['Draft', 'Published', 'Archived'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid publication status' });
+      }
+      if (status === 'Published' && user.verificationStatus === 'PENDING') {
+        return res.status(403).json({
+          success: false,
+          error:
+            'Supplier business verification is pending approval. You will be able to publish products once compliance review is complete.',
+        });
       }
       updates.status = status;
     }

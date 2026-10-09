@@ -97,6 +97,17 @@ export async function PUT(
         );
       }
 
+      if (body.status === 'Published' && user.verificationStatus === 'PENDING') {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Supplier business verification is pending approval. You will be able to publish products once compliance review is complete.',
+          },
+          { status: 403 }
+        );
+      }
+
       const updated = updateProduct(product.id, body);
       return NextResponse.json({ success: true, product: updated });
     } catch (e: any) {

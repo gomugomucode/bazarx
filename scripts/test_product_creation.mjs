@@ -281,6 +281,145 @@ async function runTests() {
   });
   report('Test product successfully archived and cleaned up', archiveRes.status === 200);
 
+  // 10. Pending Supplier Workflow & Publication Protection
+  console.log('\n--- Step 10: Pending Supplier Draft Saving & Publication Protection ---');
+  const pendingSupplier = await login('pending_supplier@bazarx.com', 'password123');
+  report(
+    'Pending Supplier Login',
+    pendingSupplier.status === 200 && pendingSupplier.data.user?.verificationStatus === 'PENDING',
+    `Status: ${pendingSupplier.data.user?.verificationStatus}`
+  );
+
+  // 10.1 Pending supplier attempting to publish directly on POST -> 403 Forbidden
+  const pendingPublishRes = await fetch(`${BASE_URL}/api/products`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: pendingSupplier.cookie,
+    },
+    body: JSON.stringify({
+      name: 'Unverified Live Listing Attempt',
+      category: 'Rice & Grains',
+      description: 'Attempting to publish directly without approved business verification.',
+      priceUsdc: 85,
+      priceNpr: 11305,
+      unit: '50kg Bag',
+      minOrder: 10,
+      availableStock: 100,
+      status: 'Published',
+    }),
+  });
+  const pendingPublishData = await pendingPublishRes.json();
+  report(
+    'Pending supplier + Published is rejected with 403 Forbidden',
+    pendingPublishRes.status === 403 &&
+      pendingPublishData.success === false &&
+      pendingPublishData.error?.includes('pending'),
+    `Status: ${pendingPublishRes.status}, Error: ${pendingPublishData.error}`
+  );
+
+  // 10.2 Pending supplier saving a valid private Draft -> 201 Created
+  const pendingDraftRes = await fetch(`${BASE_URL}/api/products`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: pendingSupplier.cookie,
+    },
+    body: JSON.stringify({
+      name: 'Pokhara Valley Organic Jumla Beans 25kg Bulk Bag',
+      category: 'Lentils',
+      description: 'High-altitude organic Jumla beans harvested in Karnali province, packaged for wholesale distribution.',
+      priceUsdc: 95,
+      priceNpr: 12635,
+      unit: '25kg Bulk Bag',
+      minOrder: 4,
+      availableStock: 60,
+      sku: 'SKU-POKHARA-BEANS-25K',
+      imageUrl: sampleDataUrl,
+      status: 'Draft',
+    }),
+  });
+  const pendingDraftData = await pendingDraftRes.json();
+  const pendingDraftId = pendingDraftData.product?.id;
+  report(
+    'Pending supplier + Draft succeeds with 201 Created',
+    pendingDraftRes.status === 201 && pendingDraftData.success === true,
+    `ID: ${pendingDraftId}, Status: ${pendingDraftData.product?.status}`
+  );
+  report(
+    'Pending supplier draft is correctly associated with pending supplier',
+    pendingDraftData.product?.supplierId === pendingSupplier.data.user?.id &&
+      pendingDraftData.product?.status === 'Draft',
+    `Supplier: ${pendingDraftData.product?.supplierName} (${pendingDraftData.product?.supplierId})`
+  );
+
+  // 10.3 Fetch draft by ID
+  const getPendingDraftRes = await fetch(`${BASE_URL}/api/products/${pendingDraftId}`);
+  const getPendingDraftData = await getPendingDraftRes.json();
+  report(
+    'GET /api/products/:id fetches pending draft',
+    getPendingDraftRes.status === 200 && getPendingDraftData.product?.status === 'Draft',
+    `Name: ${getPendingDraftData.product?.name}`
+  );
+
+  // 10.4 Verify Draft is hidden from public marketplace
+  const publicMarketplaceRes = await fetch(`${BASE_URL}/api/products`);
+  const publicMarketplaceData = await publicMarketplaceRes.json();
+  const visibleInPublic = publicMarketplaceData.products?.some((p) => p.id === pendingDraftId);
+  report(
+    'Pending draft is hidden from public buyer marketplace',
+    visibleInPublic === false,
+    `Visible in public marketplace: ${visibleInPublic}`
+  );
+
+  // 10.5 Verify Draft is visible in pending supplier inventory
+  const pendingInventoryRes = await fetch(`${BASE_URL}/api/products?supplierOnly=true`, {
+    headers: { Cookie: pendingSupplier.cookie },
+  });
+  const pendingInventoryData = await pendingInventoryRes.json();
+  const visibleInInventory = pendingInventoryData.products?.some((p) => p.id === pendingDraftId);
+  report(
+    'Pending draft is visible in pending supplier inventory',
+    visibleInInventory === true,
+    `Visible in supplier inventory: ${visibleInInventory}`
+  );
+
+  // 10.6 Pending supplier attempting to publish existing draft via PUT -> 403 Forbidden
+  const attemptPublishPutRes = await fetch(`${BASE_URL}/api/products/${pendingDraftId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: pendingSupplier.cookie,
+    },
+    body: JSON.stringify({
+      status: 'Published',
+    }),
+  });
+  const attemptPublishPutData = await attemptPublishPutRes.json();
+  report(
+    'Pending supplier cannot publish existing draft via PUT (403 Forbidden)',
+    attemptPublishPutRes.status === 403 &&
+      attemptPublishPutData.success === false &&
+      attemptPublishPutData.error?.includes('pending'),
+    `Status: ${attemptPublishPutRes.status}, Error: ${attemptPublishPutData.error}`
+  );
+
+  // 10.7 Verify draft status was NOT silently altered or corrupted
+  const verifyDraftStateRes = await fetch(`${BASE_URL}/api/products/${pendingDraftId}`);
+  const verifyDraftStateData = await verifyDraftStateRes.json();
+  report(
+    'Product status remains Draft after failed publication attempt',
+    verifyDraftStateData.product?.status === 'Draft',
+    `Current status: ${verifyDraftStateData.product?.status}`
+  );
+
+  // 10.8 Clean up pending draft
+  const cleanPendingDraftRes = await fetch(`${BASE_URL}/api/products/${pendingDraftId}`, {
+    method: 'DELETE',
+    headers: { Cookie: pendingSupplier.cookie },
+  });
+  report('Pending draft successfully archived and cleaned up', cleanPendingDraftRes.status === 200);
+
   console.log('\n================================================================');
   console.log(`PRODUCT CREATION TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);
   console.log('================================================================');

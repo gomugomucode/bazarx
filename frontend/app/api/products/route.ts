@@ -165,17 +165,6 @@ export async function POST(request: Request) {
         );
       }
 
-      if (user.verificationStatus === 'PENDING') {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              'Supplier business verification is pending approval. You will be able to publish products once compliance review is complete.',
-          },
-          { status: 403 }
-        );
-      }
-
       if (user.verificationStatus === 'REJECTED') {
         return NextResponse.json(
           { success: false, error: 'Supplier verification was rejected. Listing products is not permitted.' },
@@ -199,6 +188,19 @@ export async function POST(request: Request) {
         sku,
         status,
       } = body;
+
+      const requestedStatus = status === 'Draft' ? 'Draft' : 'Published';
+
+      if (requestedStatus === 'Published' && user.verificationStatus === 'PENDING') {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Supplier business verification is pending approval. You will be able to publish products once compliance review is complete.',
+          },
+          { status: 403 }
+        );
+      }
 
       if (!name || typeof name !== 'string' || name.trim().length < 3) {
         return NextResponse.json(

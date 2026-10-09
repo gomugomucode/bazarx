@@ -130,12 +130,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       setAvailableStock('100');
       setMinOrder('5');
       setImageUrl(PRESET_IMAGES[0].url);
-      setStatus('Published');
+      setStatus(userVerificationStatus === 'PENDING' ? 'Draft' : 'Published');
     }
     setFieldErrors({});
     setServerError(null);
     setCreatedProduct(null);
-  }, [editingProduct, isOpen]);
+  }, [editingProduct, isOpen, userVerificationStatus]);
 
   if (!isOpen) return null;
 
@@ -285,7 +285,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     setAvailableStock('100');
     setMinOrder('5');
     setImageUrl(PRESET_IMAGES[0].url);
-    setStatus('Published');
+    setStatus(userVerificationStatus === 'PENDING' ? 'Draft' : 'Published');
     setFieldErrors({});
     setServerError(null);
     setCreatedProduct(null);
@@ -373,7 +373,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
             {/* Quick Actions */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
-              {createdProduct.status === 'Published' && (
+              {createdProduct.status === 'Published' ? (
                 <Link
                   href={`/marketplace/${createdProduct.id}`}
                   target="_blank"
@@ -382,6 +382,16 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 >
                   <span>View in Marketplace</span>
                   <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
+                </Link>
+              ) : (
+                <Link
+                  href="/dashboard/products"
+                  onClick={onClose}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-colors"
+                  id="btn-success-view-inventory"
+                >
+                  <span>View in Inventory</span>
+                  <Package className="w-3.5 h-3.5 text-amber-400" />
                 </Link>
               )}
 
@@ -740,9 +750,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                       className="text-emerald-600 focus:ring-emerald-500"
                     />
                     <div>
-                      <div className="text-xs">Published (Active)</div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span>Published (Active)</span>
+                        {isPending && (
+                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                            Verification Required
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[10px] font-normal text-slate-500">
-                        Visible immediately to wholesale buyers
+                        {isPending
+                          ? 'Requires approved supplier compliance review before publishing'
+                          : 'Visible immediately to wholesale buyers'}
                       </div>
                     </div>
                   </label>

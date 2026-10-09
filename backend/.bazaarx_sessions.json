@@ -808,5 +808,161 @@
     "userId": "usr_supplier_01",
     "createdAt": "2026-10-09T04:36:12.992Z",
     "expiresAt": "2026-10-16T04:36:12.992Z"
+  },
+  {
+    "token": "cc3c941331b17ce47ab31f4aa0f08c01f9946517ffecb9044112ad1924fa28f9",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-09T04:38:47.006Z",
+    "expiresAt": "2026-10-16T04:38:47.006Z"
+  },
+  {
+    "token": "f55271b37e831c76cbc661de3fa91495a1cab9041a42965487d8ec96de665779",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:46:49.305Z",
+    "expiresAt": "2026-10-16T04:46:49.305Z"
+  },
+  {
+    "token": "4be51ee722145748f003a4157b0450bbafa27a932b46d5d9c19c531139514130",
+    "userId": "usr_supplier_02",
+    "createdAt": "2026-10-09T04:46:49.334Z",
+    "expiresAt": "2026-10-16T04:46:49.334Z"
+  },
+  {
+    "token": "3f78b88e0635262f33969f6f420ea2ab024d0ea98366e7473b846b44f0a85a18",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-09T04:46:49.355Z",
+    "expiresAt": "2026-10-16T04:46:49.355Z"
+  },
+  {
+    "token": "68e5282969c212b8d89a32e8461efd44a0f23a521bacfa07e52eb3c5234c75d8",
+    "userId": "usr_supplier_pending",
+    "createdAt": "2026-10-09T04:46:50.092Z",
+    "expiresAt": "2026-10-16T04:46:50.092Z"
+  },
+  {
+    "token": "e4b5d9235a003582488ba5c92d6eb5c350e9a092f216bf4e0ef50c701f27401f",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-09T04:46:54.666Z",
+    "expiresAt": "2026-10-16T04:46:54.666Z"
+  },
+  {
+    "token": "045a5940666cdfded83ff26ce867447af5449a6d8f4e32c64d2c04b9f74fed24",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:46:54.689Z",
+    "expiresAt": "2026-10-16T04:46:54.689Z"
+  },
+  {
+    "token": "b85d691220b07dad19cb8486b048eb86fad28e850f44fe0e66222b25dc5cf201",
+    "userId": "usr_supplier_02",
+    "createdAt": "2026-10-09T04:46:54.709Z",
+    "expiresAt": "2026-10-16T04:46:54.709Z"
+  },
+  {
+    "token": "d61ea4ad1a9824dd812477e3d467578762fed506207d68e0d572fb5bd8a86be0",
+    "userId": "usr_supplier_pending",
+    "createdAt": "2026-10-09T04:46:54.728Z",
+    "expiresAt": "2026-10-16T04:46:54.728Z"
+  },
+  {
+    "token": "e182d1d853ff2f28d99652c17f62e8069cf59f489ef11ad5ca081dc0f630c794",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-09T04:46:54.745Z",
+    "expiresAt": "2026-10-16T04:46:54.745Z"
+  },
+  {
+    "token": "2fb40a7a1a9a8e3703d5c5973e139db22bee400c955d8a3f2f6759a7db8ba866",
+    "userId": "usr_1791521270135_b13a1be2",
+    "createdAt": "2026-10-09T04:47:50.139Z",
+    "expiresAt": "2026-10-16T04:47:50.139Z"
+  },
+  {
+    "token": "84b6ff2e934508bd5829420f59515117627e5ea961d392f87f9201b2f5378bc9",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:49:13.561Z",
+    "expiresAt": "2026-10-16T04:49:13.561Z"
+  },
+  {
+    "token": "ad394b8204c6e53ae71272642349b5a31a14355b5bb7707940aa0e1d88efc936",
+    "userId": "usr_supplier_02",
+    "createdAt": "2026-10-09T04:49:13.602Z",
+    "expiresAt": "2026-10-16T04:49:13.602Z"
+  },
+  {
+    "token": "f000a44f9f80011bd22dbdb4765d10684198572e89494e8cbfd6a6ed2f9ad550",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-09T04:49:13.629Z",
+    "expiresAt": "2026-10-16T04:49:13.629Z"
+  },
+  {
+    "token": "7f42ffea3786adcc1957dc3b82519a5a45046bfa89bc4f488ea7001146ed60a8",
+    "userId": "usr_supplier_pending",
+    "createdAt": "2026-10-09T04:49:13.982Z",
+    "expiresAt": "2026-10-16T04:49:13.982Z"
+  },
+  {
+    "token": "af58caba4c9273176b61b2cd52686a3df7f986d286eaa697555d687c070755c0",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-09T04:49:19.068Z",
+    "expiresAt": "2026-10-16T04:49:19.068Z"
+  },
+  {
+    "token": "47ba8b12bfdaaaa45d48d7ebe8863e230fb86f06631e64f84d4612303bd381eb",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:49:19.094Z",
+    "expiresAt": "2026-10-16T04:49:19.094Z"
+  },
+  {
+    "token": "a72c4026cf27058690c6993b2a6d4d4ffb0936a7f1cc6f8a247cfbf032caa5d4",
+    "userId": "usr_supplier_02",
+    "createdAt": "2026-10-09T04:49:19.116Z",
+    "expiresAt": "2026-10-16T04:49:19.116Z"
+  },
+  {
+    "token": "789620614744bba8005f2a6fcc9178f154bb7854e6866ae8b1c6771d5e5523f8",
+    "userId": "usr_supplier_pending",
+    "createdAt": "2026-10-09T04:49:19.139Z",
+    "expiresAt": "2026-10-16T04:49:19.139Z"
+  },
+  {
+    "token": "88d5187888d497049ae46d4fdc3f68ad57ae186d48d9262b47f2ad2427658aac",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-09T04:49:19.160Z",
+    "expiresAt": "2026-10-16T04:49:19.160Z"
+  },
+  {
+    "token": "079abe8afcba006b7356851619fd71a46ed37ac1f8a7fcad168f13ce2df9a87f",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:49:34.352Z",
+    "expiresAt": "2026-10-16T04:49:34.352Z"
+  },
+  {
+    "token": "88f11d4725a93e8997eb1b8b0a9a33eb82b5f2878711d5adf47066e81f108ce4",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-09T04:49:34.401Z",
+    "expiresAt": "2026-10-16T04:49:34.401Z"
+  },
+  {
+    "token": "4bcd3b2aee3e16f3cac52f1448d06c0ad982780a9a5ae7377ca6325f8aa79c57",
+    "userId": "usr_1791521381773_e9928183",
+    "createdAt": "2026-10-09T04:49:41.775Z",
+    "expiresAt": "2026-10-16T04:49:41.775Z"
+  },
+  {
+    "token": "b7adb9fc3f67ce703355f166482fcd9ec7b83ee99e18f6819686157f5d08e448",
+    "userId": "usr_buyer_01",
+    "createdAt": "2026-10-09T04:49:53.620Z",
+    "expiresAt": "2026-10-16T04:49:53.620Z"
+  },
+  {
+    "token": "d3505e84dfdca208767a575039cc5b1a32b9ad8a50dea0248215dd9f45353687",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:49:53.646Z",
+    "expiresAt": "2026-10-16T04:49:53.646Z"
+  },
+  {
+    "token": "1ce120131913720434ffb7c36e9d3b3fc4ff4043c32c1b815851a07dfa381f10",
+    "userId": "usr_admin_01",
+    "createdAt": "2026-10-09T04:49:53.665Z",
+    "expiresAt": "2026-10-16T04:49:53.665Z"
   }
 ]

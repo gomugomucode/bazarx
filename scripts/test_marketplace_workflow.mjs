@@ -80,7 +80,7 @@ async function runMarketplaceTests() {
     assert(false, 1, 'Verified supplier creates a draft product', e.message);
   }
 
-  // Test 2: Pending Supplier is blocked from publishing/creating products
+  // Test 2: Pending Supplier is blocked from publishing products
   try {
     const res = await fetch(`${BASE_URL}/api/products`, {
       method: 'POST',
@@ -95,14 +95,14 @@ async function runMarketplaceTests() {
         unit: 'bag',
         availableStock: 50,
         minOrderQuantity: 5,
-        status: 'Draft',
+        status: 'Published',
       }),
     });
     const data = await res.json();
     assert(
       res.status === 403 && (data.error || '').toLowerCase().includes('pending'),
       2,
-      'Pending supplier is rejected with 403 Forbidden verification notice',
+      'Pending supplier is rejected with 403 Forbidden verification notice when attempting to publish',
       `Status: ${res.status}, Error: ${data.error}`
     );
   } catch (e) {
