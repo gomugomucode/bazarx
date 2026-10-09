@@ -30,6 +30,7 @@ interface DashboardHeaderProps {
   sol: number | null;
   usdc: number | null;
   onRoleChange: (role: 'BUYER' | 'SUPPLIER') => void;
+  onAddProduct?: () => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -39,6 +40,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   sol,
   usdc,
   onRoleChange,
+  onAddProduct,
 }) => {
   const [copied, setCopied] = useState(false);
   const { setVisible: openWalletModal } = useWalletModal();
@@ -115,13 +117,25 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               New Wholesale Order
             </Link>
           ) : (
-            <Link
-              href="/marketplace"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition-all"
-            >
-              <Store className="w-4 h-4 text-sky-400" />
-              View Marketplace
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onAddProduct}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm transition-all"
+                id="header-btn-add-product"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
+              </button>
+              <Link
+                href="/marketplace"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition-all"
+                id="header-btn-view-marketplace"
+              >
+                <Store className="w-4 h-4 text-sky-400" />
+                <span>View Marketplace</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>

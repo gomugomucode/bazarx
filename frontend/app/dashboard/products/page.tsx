@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { AddProductModal } from '@/components/dashboard/AddProductModal';
 import { useAuth } from '@/lib/AuthContext';
 import { Product, ProductStatus } from '@/lib/types';
 import {
@@ -79,8 +80,9 @@ const PRESET_IMAGES = [
   },
 ];
 
-export default function SupplierProductsPage() {
+function SupplierProductsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -92,24 +94,17 @@ export default function SupplierProductsPage() {
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formSubmitting, setFormSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  // Form Fields
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [sku, setSku] = useState('');
-  const [description, setDescription] = useState('');
-  const [priceUsdc, setPriceUsdc] = useState('50');
-  const [priceNpr, setPriceNpr] = useState('6650');
-  const [unit, setUnit] = useState(UNIT_TYPES[0]);
-  const [minOrder, setMinOrder] = useState('5');
-  const [availableStock, setAvailableStock] = useState('100');
-  const [imageUrl, setImageUrl] = useState(PRESET_IMAGES[0].url);
-  const [status, setStatus] = useState<ProductStatus>('Published');
 
   // Quick Stock Adjuster Modal/Prompt state
   const [stockUpdatingId, setStockUpdatingId] = useState<string | null>(null);
+
+  // Auto-open modal if URL specifies action=add or create=true
+  useEffect(() => {
+    if (searchParams.get('action') === 'add' || searchParams.get('create') === 'true') {
+      setEditingProduct(null);
+      setModalOpen(true);
+    }
+  }, [searchParams]);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -152,94 +147,12 @@ export default function SupplierProductsPage() {
 
   const openCreateModal = () => {
     setEditingProduct(null);
-    setName('');
-    setCategory(CATEGORIES[0]);
-    setSku(`SKU-${Date.now().toString().slice(-4)}`);
-    setDescription('');
-    setPriceUsdc('50');
-    setPriceNpr('6650');
-    setUnit(UNIT_TYPES[0]);
-    setMinOrder('5');
-    setAvailableStock('100');
-    setImageUrl(PRESET_IMAGES[0].url);
-    setStatus('Published');
-    setFormError(null);
     setModalOpen(true);
   };
 
   const openEditModal = (prod: Product) => {
     setEditingProduct(prod);
-    setName(prod.name);
-    setCategory(prod.category);
-    setSku(prod.sku || '');
-    setDescription(prod.description);
-    setPriceUsdc(String(prod.priceUsdc));
-    setPriceNpr(String(prod.priceNpr));
-    setUnit(prod.unit);
-    setMinOrder(String(prod.minOrder));
-    setAvailableStock(String(prod.availableStock));
-    setImageUrl(prod.imageUrl);
-    setStatus(prod.status || 'Published');
-    setFormError(null);
     setModalOpen(true);
-  };
-
-  const handlePriceUsdcChange = (val: string) => {
-    setPriceUsdc(val);
-    const num = parseFloat(val);
-    if (!isNaN(num) && num > 0) {
-      setPriceNpr(String(Math.round(num * 133)));
-    }
-  };
-
-  const handleFormSubmit = async (forcedStatus?: ProductStatus) => {
-    setFormError(null);
-    setFormSubmitting(true);
-
-    const targetStatus = forcedStatus || status;
-
-    try {
-      const payload = {
-        name,
-        category,
-        sku,
-        description,
-        priceUsdc: parseFloat(priceUsdc),
-        priceNpr: parseInt(priceNpr, 10),
-        unit,
-        minOrder: parseInt(minOrder, 10),
-        availableStock: parseInt(availableStock, 10),
-        imageUrl,
-        status: targetStatus,
-      };
-
-      let res: Response;
-      if (editingProduct) {
-        res = await fetch(`/api/products/${editingProduct.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        res = await fetch('/api/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to save product');
-      }
-
-      setModalOpen(false);
-      await loadSupplierProducts();
-    } catch (err: any) {
-      setFormError(err.message || 'Error saving product');
-    } finally {
-      setFormSubmitting(false);
-    }
   };
 
   const handleTogglePublish = async (prod: Product) => {
@@ -403,12 +316,7 @@ export default function SupplierProductsPage() {
 
         <button
           onClick={openCreateModal}
-          disabled={isPending}
-          className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs shadow-xs transition-all ${
-            isPending
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-              : 'bg-slate-900 hover:bg-slate-800 text-white shadow-emerald-500/10'
-          }`}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs shadow-xs transition-all bg-slate-900 hover:bg-slate-800 text-white shadow-emerald-500/10"
           id="btn-add-product"
         >
           <Plus className="w-4 h-4 text-emerald-400" />
@@ -501,14 +409,13 @@ export default function SupplierProductsPage() {
               ? 'No products match your current keyword or status filters.'
               : 'You have not added any wholesale products to BazaarX yet.'}
           </p>
-          {!isPending && (
-            <button
-              onClick={openCreateModal}
-              className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors"
-            >
-              Add Your First Product
-            </button>
-          )}
+          <button
+            onClick={openCreateModal}
+            className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors"
+            id="btn-add-first-product"
+          >
+            Add Your First Product
+          </button>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
@@ -686,304 +593,35 @@ export default function SupplierProductsPage() {
       )}
 
       {/* Add / Edit Product Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in-0 duration-150">
-          <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-lg font-black text-slate-900">
-                  {editingProduct ? 'Edit Wholesale Product' : 'Add New Wholesale Listing'}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Fill in wholesale commodity specifications and pricing for Nepal retail buyers.
-                </p>
-              </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {formError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold">
-                {formError}
-              </div>
-            )}
-
-            {/* Modal Form */}
-            <div className="space-y-4">
-              {/* Product Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Mustang Pure Mustard Cooking Oil (50L Tin)"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  id="form-product-name"
-                />
-              </div>
-
-              {/* Category and SKU */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Commodity Category *
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-category"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    SKU Code (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SKU-TERAI-OIL-01"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-sku"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Product Description *
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Detail moisture content, origin district, packaging specs, certification..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  id="form-product-description"
-                />
-              </div>
-
-              {/* Price & Unit */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Wholesale Price (USDC) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={priceUsdc}
-                    onChange={(e) => handlePriceUsdcChange(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-price-usdc"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Equivalent NPR Price
-                  </label>
-                  <input
-                    type="number"
-                    value={priceNpr}
-                    onChange={(e) => setPriceNpr(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-price-npr"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Unit Type *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 50L Tin, carton, kg"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-unit"
-                  />
-                </div>
-              </div>
-
-              {/* Stock and MOQ */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Available Warehouse Stock *
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={availableStock}
-                    onChange={(e) => setAvailableStock(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-stock"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Minimum Order Quantity (MOQ) *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={minOrder}
-                    onChange={(e) => setMinOrder(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    id="form-product-moq"
-                  />
-                </div>
-              </div>
-
-              {/* Product Image URL & Presets */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-800">
-                  Product Image URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  id="form-product-image-url"
-                />
-
-                <div className="pt-1">
-                  <span className="text-[11px] text-slate-400 font-medium block mb-1.5">
-                    Or select a stock thumbnail preset:
-                  </span>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {PRESET_IMAGES.map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setImageUrl(preset.url)}
-                        className={`p-1 rounded-xl border text-[10px] text-left transition-all ${
-                          imageUrl === preset.url
-                            ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold ring-2 ring-emerald-600/20'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                        }`}
-                      >
-                        <img
-                          src={preset.url}
-                          alt={preset.label}
-                          className="w-full h-12 object-cover rounded-lg mb-1"
-                        />
-                        <span className="truncate block">{preset.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Publication Status Selection */}
-              <div className="pt-2">
-                <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  Initial Publication Status
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label
-                    className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-colors ${
-                      status === 'Published'
-                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-bold'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={status === 'Published'}
-                      onChange={() => setStatus('Published')}
-                      className="text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <div>
-                      <div className="text-xs">Published (Active)</div>
-                      <div className="text-[10px] font-normal text-slate-500">
-                        Visible immediately to wholesale buyers
-                      </div>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-colors ${
-                      status === 'Draft'
-                        ? 'border-amber-500 bg-amber-50/50 text-amber-950 font-bold'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={status === 'Draft'}
-                      onChange={() => setStatus('Draft')}
-                      className="text-amber-600 focus:ring-amber-500"
-                    />
-                    <div>
-                      <div className="text-xs">Draft (Private)</div>
-                      <div className="text-[10px] font-normal text-slate-500">
-                        Hidden from marketplace until published
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFormSubmit('Draft')}
-                disabled={formSubmitting}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 hover:bg-slate-100"
-                id="btn-save-draft"
-              >
-                Save as Draft
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFormSubmit('Published')}
-                disabled={formSubmitting}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors"
-                id="btn-save-publish"
-              >
-                {formSubmitting ? 'Saving...' : editingProduct ? 'Save Changes' : 'Publish Product'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddProductModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingProduct(null);
+        }}
+        onSuccess={() => {
+          setModalOpen(false);
+          setEditingProduct(null);
+          loadSupplierProducts();
+        }}
+        editingProduct={editingProduct}
+        userVerificationStatus={user?.verificationStatus}
+      />
     </div>
+  );
+}
+
+export default function SupplierProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-500 font-medium">Loading Wholesale Inventory...</p>
+        </div>
+      }
+    >
+      <SupplierProductsContent />
+    </Suspense>
   );
 }

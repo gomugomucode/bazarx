@@ -29,7 +29,7 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 // Root status endpoint
 app.get('/', (req: Request, res: Response) => {

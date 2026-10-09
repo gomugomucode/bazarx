@@ -205,7 +205,7 @@ router.post('/', (req: Request, res: Response) => {
 
     // High quality default image fallback if not provided
     const defaultImage =
-      imageUrl && typeof imageUrl === 'string' && imageUrl.trim().startsWith('http')
+      imageUrl && typeof imageUrl === 'string' && (imageUrl.trim().startsWith('http') || imageUrl.trim().startsWith('data:image/'))
         ? imageUrl.trim()
         : 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800';
 

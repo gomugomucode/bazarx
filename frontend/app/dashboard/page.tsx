@@ -14,7 +14,8 @@ import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { ActionRequiredCard } from '@/components/dashboard/ActionRequiredCard';
 import { OrdersSection } from '@/components/dashboard/OrdersSection';
 import { AdminBanner } from '@/components/dashboard/AdminBanner';
-import { Lock, ArrowRight, Boxes } from 'lucide-react';
+import { Lock, ArrowRight, Boxes, Plus } from 'lucide-react';
+import { AddProductModal } from '@/components/dashboard/AddProductModal';
 
 function UnifiedDashboardContent() {
   const router = useRouter();
@@ -26,6 +27,7 @@ function UnifiedDashboardContent() {
   const [activeRole, setActiveRole] = useState<'BUYER' | 'SUPPLIER'>('BUYER');
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [addProductModalOpen, setAddProductModalOpen] = useState(false);
 
   // 1. Enforce authentication redirect if logged out
   useEffect(() => {
@@ -145,6 +147,7 @@ function UnifiedDashboardContent() {
         sol={sol}
         usdc={usdc}
         onRoleChange={handleRoleChange}
+        onAddProduct={() => setAddProductModalOpen(true)}
       />
 
       {/* Role-Specific Metric Summary Cards */}
@@ -169,14 +172,25 @@ function UnifiedDashboardContent() {
               </p>
             </div>
           </div>
-          <Link
-            href="/dashboard/products"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-colors shrink-0"
-            id="supplier-dashboard-manage-products"
-          >
-            <span>Manage Products</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setAddProductModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-xs transition-colors shrink-0"
+              id="dashboard-btn-add-product"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Product</span>
+            </button>
+            <Link
+              href="/dashboard/products"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-colors shrink-0"
+              id="supplier-dashboard-manage-products"
+            >
+              <span>Manage Products</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       )}
 
@@ -192,6 +206,18 @@ function UnifiedDashboardContent() {
         orders={orders}
         loading={ordersLoading}
       />
+
+      {/* Add Product Modal for Seller Dashboard */}
+      {addProductModalOpen && (
+        <AddProductModal
+          isOpen={addProductModalOpen}
+          onClose={() => setAddProductModalOpen(false)}
+          onSuccess={() => {
+            // Product created successfully, refresh orders or notify
+          }}
+          userVerificationStatus={user?.verificationStatus}
+        />
+      )}
     </DashboardShell>
   );
 }
