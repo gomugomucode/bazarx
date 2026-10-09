@@ -784,5 +784,29 @@
     "userId": "usr_admin_01",
     "createdAt": "2026-10-09T02:37:34.133Z",
     "expiresAt": "2026-10-16T02:37:34.133Z"
+  },
+  {
+    "token": "ff199acad1d0c5e97676c97a10a85af7f8cdd69a665f517cb14711a478e829bf",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:36:10.785Z",
+    "expiresAt": "2026-10-16T04:36:10.785Z"
+  },
+  {
+    "token": "69732d1cee4f470fec63574c4d0497dcc7de2d15806102ba7a2d42920b065396",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:36:12.136Z",
+    "expiresAt": "2026-10-16T04:36:12.136Z"
+  },
+  {
+    "token": "36c3f3e582b808a259622d5dc0593c5f83555f434af0592bf82cae32b1adb301",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:36:12.543Z",
+    "expiresAt": "2026-10-16T04:36:12.543Z"
+  },
+  {
+    "token": "9b15394a8cab84b5e9c2f9efe34ce5a899d95f9b65a9fb901cee17cdcdb34eb3",
+    "userId": "usr_supplier_01",
+    "createdAt": "2026-10-09T04:36:12.992Z",
+    "expiresAt": "2026-10-16T04:36:12.992Z"
   }
 ]
