@@ -218,5 +218,25 @@
     "id": "prod-1791394951012-918",
     "createdAt": "2026-10-07T17:42:31.012Z",
     "updatedAt": "2026-10-07T17:42:31.105Z"
+  },
+  {
+    "name": "Himalayan Organic Buckwheat Honey 50kg Drum",
+    "category": "Grocery",
+    "description": "Raw, unpasteurized wild buckwheat honey harvested from Mustang valley.",
+    "priceUsdc": 450,
+    "priceNpr": 60000,
+    "unit": "drum",
+    "minOrder": 2,
+    "availableStock": 16,
+    "supplierId": "usr_supplier_01",
+    "supplierName": "Terai Edible Oils & Food Industries",
+    "supplierLocation": "Nepal",
+    "supplierWallet": "8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP",
+    "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
+    "sku": "HONEY-MUSTANG-50K",
+    "status": "Archived",
+    "id": "prod-1791513454168-889",
+    "createdAt": "2026-10-09T02:37:34.168Z",
+    "updatedAt": "2026-10-09T02:37:34.666Z"
   }
 ]
