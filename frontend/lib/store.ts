@@ -11,6 +11,7 @@ import {
   UserProfile,
   SessionRecord,
   UserRole,
+  VerificationStatus,
 } from './types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS } from './mockData';
 
@@ -65,7 +66,6 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     role: 'BUYER',
     roles: ['BUYER'],
     verificationStatus: 'VERIFIED',
-    wallet: '6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K',
     createdAt: '2026-10-04T08:00:00.000Z',
     updatedAt: '2026-10-04T08:00:00.000Z',
   },
@@ -81,7 +81,6 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     role: 'SUPPLIER',
     roles: ['SUPPLIER'],
     verificationStatus: 'VERIFIED',
-    wallet: '8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP',
     createdAt: '2026-10-04T08:00:00.000Z',
     updatedAt: '2026-10-04T08:00:00.000Z',
   },
@@ -114,7 +113,6 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     role: 'SUPPLIER',
     roles: ['SUPPLIER'],
     verificationStatus: 'VERIFIED',
-    wallet: 'SuppL2erAnnapurna1111111111111111111111111111',
     createdAt: '2026-10-04T08:00:00.000Z',
     updatedAt: '2026-10-04T08:00:00.000Z',
   },
@@ -130,7 +128,6 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     role: 'SUPPLIER',
     roles: ['SUPPLIER'],
     verificationStatus: 'PENDING',
-    wallet: '9PendingSupplierWallet1111111111111111111111',
     createdAt: '2026-10-04T08:00:00.000Z',
     updatedAt: '2026-10-04T08:00:00.000Z',
   },

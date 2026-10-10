@@ -13,7 +13,6 @@
       "BUYER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
@@ -31,7 +30,6 @@
       "SUPPLIER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
@@ -48,11 +46,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-04T15:20:02.049Z",
-    "updatedAt": "2026-10-04T15:20:02.351Z",
-    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K"
+    "updatedAt": "2026-10-10T05:44:12.374Z"
   },
   {
     "id": "usr_1791127270776_1149525b",
@@ -67,10 +64,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-04T15:21:10.776Z",
-    "updatedAt": "2026-10-04T15:21:10.776Z"
+    "updatedAt": "2026-10-10T05:44:14.761Z"
   },
   {
     "id": "usr_1791130247235_75de1236",
@@ -84,10 +81,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-04T16:10:47.235Z",
-    "updatedAt": "2026-10-04T16:10:47.235Z"
+    "updatedAt": "2026-10-10T05:44:16.400Z"
   },
   {
     "id": "usr_1791130301787_6db04a5b",
@@ -101,10 +98,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-04T16:11:41.787Z",
-    "updatedAt": "2026-10-04T16:11:41.787Z"
+    "updatedAt": "2026-10-10T05:43:52.521Z"
   },
   {
     "id": "usr_1791130407823_0a724b94",
@@ -118,10 +115,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-04T16:13:27.823Z",
-    "updatedAt": "2026-10-04T16:13:27.823Z"
+    "updatedAt": "2026-10-10T05:43:53.328Z"
   },
   {
     "id": "usr_1791134201884_82941ac7",
@@ -135,10 +132,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-04T17:16:41.884Z",
-    "updatedAt": "2026-10-04T17:16:41.884Z"
+    "updatedAt": "2026-10-10T05:43:55.168Z"
   },
   {
     "id": "usr_1791171992066_363a612a",
@@ -152,10 +149,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-05T03:46:32.066Z",
-    "updatedAt": "2026-10-05T03:46:32.066Z"
+    "updatedAt": "2026-10-10T05:43:54.471Z"
   },
   {
     "id": "usr_1791187506915_5838f7ea",
@@ -187,10 +184,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-05T08:13:30.215Z",
-    "updatedAt": "2026-10-05T08:13:30.215Z"
+    "updatedAt": "2026-10-10T05:43:55.928Z"
   },
   {
     "id": "usr_1791188536953_562c981f",
@@ -204,10 +201,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-05T08:22:16.953Z",
-    "updatedAt": "2026-10-05T08:22:16.953Z"
+    "updatedAt": "2026-10-10T05:43:56.376Z"
   },
   {
     "id": "usr_1791188589443_d48c2dd5",
@@ -221,10 +218,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-05T08:23:09.443Z",
-    "updatedAt": "2026-10-05T08:23:09.443Z"
+    "updatedAt": "2026-10-10T05:43:57.585Z"
   },
   {
     "id": "usr_1791381027983_9631fe56",
@@ -238,10 +235,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T13:50:27.983Z",
-    "updatedAt": "2026-10-07T13:50:27.983Z"
+    "updatedAt": "2026-10-10T05:43:58.191Z"
   },
   {
     "id": "usr_1791381222951_e90579e3",
@@ -255,10 +252,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T13:53:42.951Z",
-    "updatedAt": "2026-10-07T13:53:42.951Z"
+    "updatedAt": "2026-10-10T05:43:58.767Z"
   },
   {
     "id": "usr_1791382768652_21814dc5",
@@ -272,10 +269,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T14:19:28.652Z",
-    "updatedAt": "2026-10-07T14:19:28.652Z"
+    "updatedAt": "2026-10-10T05:43:59.696Z"
   },
   {
     "id": "usr_1791384113206_3dcce6d0",
@@ -289,10 +286,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T14:41:53.206Z",
-    "updatedAt": "2026-10-07T14:41:53.206Z"
+    "updatedAt": "2026-10-10T05:43:59.999Z"
   },
   {
     "id": "usr_supplier_02",
@@ -308,7 +305,6 @@
       "SUPPLIER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "SuppL2erAnnapurna1111111111111111111111111111",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
@@ -325,10 +321,10 @@
     "roles": [
       "SUPPLIER"
     ],
-    "verificationStatus": "PENDING",
-    "wallet": "9PendingSupplierWallet1111111111111111111111",
+    "verificationStatus": "VERIFIED",
     "createdAt": "2026-10-04T08:00:00.000Z",
-    "updatedAt": "2026-10-04T08:00:00.000Z"
+    "updatedAt": "2026-10-10T05:44:01.143Z",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer."
   },
   {
     "id": "usr_1791386171365_7454be0d",
@@ -342,10 +338,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T15:16:11.365Z",
-    "updatedAt": "2026-10-07T15:16:11.365Z"
+    "updatedAt": "2026-10-10T05:44:01.655Z"
   },
   {
     "id": "usr_1791388901884_8ada3092",
@@ -359,10 +355,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T16:01:41.884Z",
-    "updatedAt": "2026-10-07T16:01:41.884Z"
+    "updatedAt": "2026-10-10T05:44:01.999Z"
   },
   {
     "id": "usr_1791394964736_f311dc20",
@@ -376,10 +372,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T17:42:44.736Z",
-    "updatedAt": "2026-10-07T17:42:44.736Z"
+    "updatedAt": "2026-10-10T05:44:02.736Z"
   },
   {
     "id": "usr_1791395104368_32da08ab",
@@ -393,10 +389,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T17:45:04.368Z",
-    "updatedAt": "2026-10-07T17:45:04.368Z"
+    "updatedAt": "2026-10-10T05:44:05.000Z"
   },
   {
     "id": "usr_1791397292721_fac0036e",
@@ -410,10 +406,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-07T18:21:32.721Z",
-    "updatedAt": "2026-10-07T18:21:32.721Z"
+    "updatedAt": "2026-10-10T05:44:04.367Z"
   },
   {
     "id": "usr_1791513436456_34d56b6f",
@@ -427,10 +423,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-09T02:37:16.456Z",
-    "updatedAt": "2026-10-09T02:37:16.456Z"
+    "updatedAt": "2026-10-10T05:44:07.071Z"
   },
   {
     "id": "usr_1791521270135_b13a1be2",
@@ -444,10 +440,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-09T04:47:50.135Z",
-    "updatedAt": "2026-10-09T04:47:50.135Z"
+    "updatedAt": "2026-10-10T05:44:07.815Z"
   },
   {
     "id": "usr_1791521381773_e9928183",
@@ -461,10 +457,10 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-09T04:49:41.773Z",
-    "updatedAt": "2026-10-09T04:49:41.773Z"
+    "updatedAt": "2026-10-10T05:44:08.375Z"
   },
   {
     "id": "usr_1791606838972_4e19329d",
@@ -500,9 +496,9 @@
     "roles": [
       "BUYER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.",
     "createdAt": "2026-10-10T04:41:24.738Z",
-    "updatedAt": "2026-10-10T04:41:24.738Z"
+    "updatedAt": "2026-10-10T05:44:09.385Z"
   }
 ]

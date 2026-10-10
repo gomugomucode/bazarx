@@ -208,6 +208,11 @@ router.post('/link-wallet', (req: Request, res: Response) => {
   }
 
   const { wallet } = req.body;
+  if (wallet === '' || wallet === 'UNLINK' || wallet === null) {
+    const updated = store.updateUser(user.id, { wallet: undefined });
+    return res.json({ success: true, user: updated });
+  }
+
   if (!wallet || typeof wallet !== 'string' || !SOLANA_PUBKEY_REGEX.test(wallet.trim())) {
     return res.status(400).json({
       success: false,

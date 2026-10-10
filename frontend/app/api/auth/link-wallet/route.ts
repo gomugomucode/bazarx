@@ -30,6 +30,28 @@ export async function POST(request: Request) {
   }
 
   const { wallet } = body || {};
+  if (wallet === '' || wallet === 'UNLINK' || wallet === null) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/link-wallet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': cookieHeader,
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ wallet: '' }),
+      });
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    } catch (e) {
+      const { getSession, updateUserAccount } = await import('@/lib/store');
+      const session = getSession(token);
+      if (!session) return NextResponse.json({ success: false, error: 'Session expired' }, { status: 401 });
+      const updated = updateUserAccount(session.userId, { wallet: undefined });
+      return NextResponse.json({ success: true, user: updated });
+    }
+  }
+
   if (!wallet || typeof wallet !== 'string' || !SOLANA_PUBKEY_REGEX.test(wallet.trim())) {
     return NextResponse.json(
       { success: false, error: 'Valid Solana wallet address required (Base58, 32-44 characters)' },

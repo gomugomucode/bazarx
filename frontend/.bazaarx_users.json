@@ -13,7 +13,6 @@
       "BUYER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
@@ -31,7 +30,6 @@
       "SUPPLIER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "8bhuiuQKXQrkofbqzqv3v9TiTJKNHBkq6VR72wnKsBDP",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
@@ -51,8 +49,7 @@
     "verificationStatus": "PENDING",
     "verificationNotes": "Buyer profile submitted. Verification pending.",
     "createdAt": "2026-10-04T15:20:02.049Z",
-    "updatedAt": "2026-10-04T15:20:02.351Z",
-    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K"
+    "updatedAt": "2026-10-04T15:20:02.351Z"
   },
   {
     "id": "usr_1791127270776_1149525b",
@@ -308,7 +305,6 @@
       "SUPPLIER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "SuppL2erAnnapurna1111111111111111111111111111",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
@@ -326,7 +322,6 @@
       "SUPPLIER"
     ],
     "verificationStatus": "PENDING",
-    "wallet": "9PendingSupplierWallet1111111111111111111111",
     "createdAt": "2026-10-04T08:00:00.000Z",
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
