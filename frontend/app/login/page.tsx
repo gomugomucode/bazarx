@@ -57,7 +57,11 @@ function LoginFormContent() {
 
   const handleQuickFill = (demoEmail: string) => {
     setEmail(demoEmail);
-    setPassword('password123');
+    if (demoEmail === 'admin@anupambaral.com.np') {
+      setPassword('Admin@123');
+    } else {
+      setPassword('password123');
+    }
     setErrorMsg(null);
   };
 
@@ -166,7 +170,7 @@ function LoginFormContent() {
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@bazarx.com')}
+                onClick={() => handleQuickFill('admin@anupambaral.com.np')}
                 className="py-1.5 px-2 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-[11px] font-semibold text-slate-700 transition-colors text-center"
               >
                 Admin

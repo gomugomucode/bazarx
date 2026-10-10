@@ -36,26 +36,6 @@
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
   {
-    "id": "usr_admin_01",
-    "email": "admin@bazarx.com",
-    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
-    "fullName": "BazaarX Compliance Officer",
-    "businessName": "BazaarX Protocol Administrator",
-    "phone": "+977-9801234567",
-    "citizenshipNumber": "01-01-55-00001",
-    "panNumber": "100000001",
-    "role": "ADMIN",
-    "roles": [
-      "ADMIN",
-      "BUYER",
-      "SUPPLIER"
-    ],
-    "verificationStatus": "VERIFIED",
-    "wallet": "HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV",
-    "createdAt": "2026-10-04T08:00:00.000Z",
-    "updatedAt": "2026-10-04T08:00:00.000Z"
-  },
-  {
     "id": "usr_1791127202049_cac48e46",
     "email": "testbuyer_1791127202035@bazarx.com",
     "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
@@ -485,5 +465,44 @@
     "verificationNotes": "Buyer profile submitted. Verification pending.",
     "createdAt": "2026-10-09T04:49:41.773Z",
     "updatedAt": "2026-10-09T04:49:41.773Z"
+  },
+  {
+    "id": "usr_1791606838972_4e19329d",
+    "email": "admin@anupambaral.com.np",
+    "passwordHash": "f6feef54fcac6ecf2919d561083f54c4b7732b58dd280d7b5a45fd9ea915662fb9368a1fb57c97ee2c72f0f84dcf665c0f849f8b0a60c457a0ba86900fc5e7e5",
+    "fullName": "Anupam",
+    "businessName": "yarsabyte",
+    "phone": "9808200850",
+    "citizenshipNumber": "235456",
+    "panNumber": "243423424",
+    "role": "ADMIN",
+    "roles": [
+      "ADMIN",
+      "BUYER",
+      "SUPPLIER"
+    ],
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Verified Protocol Administrator",
+    "createdAt": "2026-10-10T04:33:58.972Z",
+    "updatedAt": "2026-10-10T04:38:26.289Z",
+    "wallet": "HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV"
+  },
+  {
+    "id": "usr_1791607284738_7032831e",
+    "email": "yarshabyte@gmal.com",
+    "passwordHash": "b47be61a74b4f80d4b6a8404634a03f2597905c8d104b86652693490d6eb824c86c67f5005c50554cb9a7d87ca337af3b1f64eb6fb0e4e742b37c1624e7f729b",
+    "fullName": "yarshabyte",
+    "businessName": "Yarsshabyte",
+    "phone": "9767606309",
+    "citizenshipNumber": "2343567",
+    "panNumber": "34324242w",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-10T04:41:24.738Z",
+    "updatedAt": "2026-10-10T04:41:24.738Z"
   }
 ]
