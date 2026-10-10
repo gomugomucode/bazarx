@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
-import { Order, OrderState } from '@/lib/types';
+import { Order, OrderState, UserProfile, VerificationStatus } from '@/lib/types';
 import {
   deriveConfigPda,
   DEVNET_USDC_MINT,
@@ -33,6 +33,17 @@ import {
   AlertTriangle,
   ArrowRight,
   Eye,
+  Users,
+  UserCheck,
+  UserX,
+  Check,
+  X,
+  FileText,
+  BadgeCheck,
+  Phone,
+  Mail,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AdminProtocolPage() {
@@ -45,7 +56,21 @@ export default function AdminProtocolPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [stateFilter, setStateFilter] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<string>('All');
-  const [activeTab, setActiveTab] = useState<'transactions' | 'governance'>('transactions');
+  const [activeTab, setActiveTab] = useState<'transactions' | 'compliance' | 'governance'>('transactions');
+
+  // Compliance & KYC State
+  const [usersList, setUsersList] = useState<
+    (UserProfile & { citizenshipNumber?: string; panNumber?: string })[]
+  >([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState<string>('All');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('All');
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchAllOrders() {
@@ -142,6 +167,139 @@ export default function AdminProtocolPage() {
       return matchesSearch && matchesState && matchesProduct;
     });
   }, [orders, searchQuery, stateFilter, selectedProduct]);
+
+  // Fetch registered users for compliance verification
+  const fetchUsers = async () => {
+    if (!user || !user.roles?.includes('ADMIN')) return;
+    setUsersLoading(true);
+    try {
+      const res = await fetch('/api/users', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.users)) {
+        setUsersList(data.users);
+      }
+    } catch (err) {
+      console.error('Failed to load user directory for admin:', err);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && user.roles?.includes('ADMIN')) {
+      fetchUsers();
+    }
+  }, [user]);
+
+  // Compliance Metrics
+  const complianceMetrics = useMemo(() => {
+    const totalUsers = usersList.length;
+    const pendingUsers = usersList.filter((u) => u.verificationStatus === 'PENDING');
+    const verifiedUsers = usersList.filter((u) => u.verificationStatus === 'VERIFIED');
+    const rejectedUsers = usersList.filter((u) => u.verificationStatus === 'REJECTED');
+    const supplierCount = usersList.filter((u) => u.roles?.includes('SUPPLIER') || u.role === 'SUPPLIER').length;
+    const buyerCount = usersList.filter((u) => u.roles?.includes('BUYER') || u.role === 'BUYER').length;
+
+    return {
+      totalUsers,
+      pendingCount: pendingUsers.length,
+      verifiedCount: verifiedUsers.length,
+      rejectedCount: rejectedUsers.length,
+      supplierCount,
+      buyerCount,
+    };
+  }, [usersList]);
+
+  // Filtered users list for compliance review
+  const filteredUsers = useMemo(() => {
+    return usersList.filter((u) => {
+      if (userStatusFilter !== 'All' && u.verificationStatus !== userStatusFilter) {
+        return false;
+      }
+      if (userRoleFilter !== 'All') {
+        const hasRole = u.roles?.includes(userRoleFilter as any) || u.role === userRoleFilter;
+        if (!hasRole) return false;
+      }
+      if (userSearchQuery.trim()) {
+        const q = userSearchQuery.trim().toLowerCase();
+        const matchesName = u.fullName?.toLowerCase().includes(q);
+        const matchesBusiness = u.businessName?.toLowerCase().includes(q);
+        const matchesEmail = u.email?.toLowerCase().includes(q);
+        const matchesPhone = u.phone?.toLowerCase().includes(q);
+        const matchesPan = u.panNumber?.toLowerCase().includes(q);
+        const matchesCitizenship = u.citizenshipNumber?.toLowerCase().includes(q);
+        const matchesWallet = u.wallet?.toLowerCase().includes(q);
+        return Boolean(
+          matchesName ||
+          matchesBusiness ||
+          matchesEmail ||
+          matchesPhone ||
+          matchesPan ||
+          matchesCitizenship ||
+          matchesWallet
+        );
+      }
+      return true;
+    });
+  }, [usersList, userStatusFilter, userRoleFilter, userSearchQuery]);
+
+  // Handle Approve / Reject / Reset Verification
+  const handleSetVerificationStatus = async (
+    targetUserId: string,
+    nextStatus: 'VERIFIED' | 'REJECTED' | 'PENDING',
+    customNotes?: string
+  ) => {
+    setProcessingUserId(targetUserId);
+    setActionNotice(null);
+    try {
+      const defaultNotes =
+        nextStatus === 'VERIFIED'
+          ? 'Approved & Verified: Business PAN and citizenship compliance confirmed by BazaarX Compliance Officer.'
+          : nextStatus === 'REJECTED'
+          ? 'Rejected: Business compliance documents failed verification review.'
+          : 'Compliance review pending administrative inspection.';
+
+      const res = await fetch(`/api/users/${targetUserId}/verification`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: nextStatus,
+          notes: customNotes || defaultNotes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update verification status');
+      }
+
+      setUsersList((prev) =>
+        prev.map((u) =>
+          u.id === targetUserId
+            ? {
+                ...u,
+                verificationStatus: nextStatus,
+                verificationNotes: customNotes || defaultNotes,
+              }
+            : u
+        )
+      );
+
+      setActionNotice({
+        type: 'success',
+        message: `Business account #${targetUserId} successfully updated to ${nextStatus}.`,
+      });
+      setTimeout(() => setActionNotice(null), 5000);
+    } catch (err: any) {
+      setActionNotice({
+        type: 'error',
+        message: err.message || 'Verification update failed',
+      });
+      setTimeout(() => setActionNotice(null), 6000);
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -261,26 +419,44 @@ export default function AdminProtocolPage() {
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeTab === 'transactions'
                 ? 'bg-slate-900 text-white shadow-2xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Marketplace Transactions ({orders.length})
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>Marketplace Transactions ({orders.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('compliance')}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'compliance'
+                ? 'bg-slate-900 text-white shadow-2xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+            <span>Compliance &amp; KYC Reviews</span>
+            {complianceMetrics.pendingCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full animate-pulse">
+                {complianceMetrics.pendingCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('governance')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeTab === 'governance'
                 ? 'bg-slate-900 text-white shadow-2xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Protocol Parameters &amp; Invariants
+            <Cpu className="w-3.5 h-3.5" />
+            <span>Protocol Parameters &amp; Invariants</span>
           </button>
         </div>
       </div>
@@ -525,6 +701,426 @@ export default function AdminProtocolPage() {
                               <Eye className="w-3 h-3 text-slate-500" />
                               <span>Audit</span>
                             </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : activeTab === 'compliance' ? (
+        /* Compliance & KYC Reviews View */
+        <div className="space-y-6">
+          {/* Action Notice Alert */}
+          {actionNotice && (
+            <div
+              className={`p-4 rounded-2xl border text-xs flex items-center justify-between gap-3 transition-all ${
+                actionNotice.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {actionNotice.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span className="font-semibold">{actionNotice.message}</span>
+              </div>
+              <button
+                onClick={() => setActionNotice(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold px-2 py-1"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Compliance Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Pending Approvals */}
+            <div
+              onClick={() => setUserStatusFilter('PENDING')}
+              className={`bg-white p-5 rounded-2xl border cursor-pointer transition-all ${
+                userStatusFilter === 'PENDING'
+                  ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20'
+                  : 'border-slate-200 hover:border-amber-300 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-amber-700">Pending Reviews</span>
+                <Clock className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="text-2xl font-black text-amber-900">
+                {complianceMetrics.pendingCount}
+              </div>
+              <span className="text-[11px] text-amber-700/80 mt-1 block">
+                Awaiting PAN &amp; Citizenship approval
+              </span>
+            </div>
+
+            {/* Verified Businesses */}
+            <div
+              onClick={() => setUserStatusFilter('VERIFIED')}
+              className={`bg-white p-5 rounded-2xl border cursor-pointer transition-all ${
+                userStatusFilter === 'VERIFIED'
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20'
+                  : 'border-slate-200 hover:border-emerald-300 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-emerald-700">Verified Businesses</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="text-2xl font-black text-emerald-900">
+                {complianceMetrics.verifiedCount}
+              </div>
+              <span className="text-[11px] text-emerald-700/80 mt-1 block">
+                Authorized for wholesale trades &amp; publishing
+              </span>
+            </div>
+
+            {/* Rejected Applications */}
+            <div
+              onClick={() => setUserStatusFilter('REJECTED')}
+              className={`bg-white p-5 rounded-2xl border cursor-pointer transition-all ${
+                userStatusFilter === 'REJECTED'
+                  ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20'
+                  : 'border-slate-200 hover:border-rose-300 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-rose-700">Rejected Applications</span>
+                <AlertCircle className="w-4 h-4 text-rose-600" />
+              </div>
+              <div className="text-2xl font-black text-rose-900">
+                {complianceMetrics.rejectedCount}
+              </div>
+              <span className="text-[11px] text-rose-700/80 mt-1 block">
+                Non-compliant or flagged credentials
+              </span>
+            </div>
+
+            {/* Total Accounts */}
+            <div
+              onClick={() => {
+                setUserStatusFilter('All');
+                setUserRoleFilter('All');
+              }}
+              className={`bg-white p-5 rounded-2xl border cursor-pointer transition-all ${
+                userStatusFilter === 'All' && userRoleFilter === 'All'
+                  ? 'border-slate-900 ring-2 ring-slate-900/10'
+                  : 'border-slate-200 hover:border-slate-400 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-slate-500">Total Directory</span>
+                <Users className="w-4 h-4 text-slate-600" />
+              </div>
+              <div className="text-2xl font-black text-slate-900">
+                {complianceMetrics.totalUsers}
+              </div>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                {complianceMetrics.supplierCount} Suppliers • {complianceMetrics.buyerCount} Buyers
+              </span>
+            </div>
+          </div>
+
+          {/* Compliance Management Table & Filters */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="p-5 border-b border-slate-100 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <span>KYC &amp; Business Compliance Verification Directory</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-normal text-slate-600">
+                      {filteredUsers.length} users
+                    </span>
+                  </h2>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Inspect government PAN numbers, citizenship credentials, and grant verified supplier publishing authority.
+                  </p>
+                </div>
+
+                <button
+                  onClick={fetchUsers}
+                  disabled={usersLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors self-start sm:self-auto disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${usersLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh Directory</span>
+                </button>
+              </div>
+
+              {/* Filters Toolbar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by business, PAN, citizenship, email..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                  {(['All', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => setUserStatusFilter(st)}
+                      className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                        userStatusFilter === st
+                          ? st === 'PENDING'
+                            ? 'bg-amber-500 text-white shadow-2xs'
+                            : st === 'VERIFIED'
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : st === 'REJECTED'
+                            ? 'bg-rose-600 text-white shadow-2xs'
+                            : 'bg-slate-900 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {st === 'All' ? 'All Status' : st}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Role Filter */}
+                <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                  {(['All', 'SUPPLIER', 'BUYER'] as const).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setUserRoleFilter(r)}
+                      className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-semibold transition-all ${
+                        userRoleFilter === r
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {r === 'All' ? 'All Roles' : `${r}s`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Users Directory Table */}
+            {usersLoading ? (
+              <div className="p-12 text-center space-y-2">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mx-auto" />
+                <p className="text-xs text-slate-500">Loading user compliance registry...</p>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-12 text-center space-y-2">
+                <Users className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-700">No users match filter criteria</p>
+                <p className="text-[11px] text-slate-400">
+                  Try adjusting search keywords or clearing status filters.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-600">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px] font-semibold">
+                    <tr>
+                      <th className="px-5 py-3">Business &amp; Contact</th>
+                      <th className="px-5 py-3">Role</th>
+                      <th className="px-5 py-3">Government KYC Credentials</th>
+                      <th className="px-5 py-3">Settlement Wallet</th>
+                      <th className="px-5 py-3">Compliance Status</th>
+                      <th className="px-5 py-3 text-right">Verification Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredUsers.map((u) => {
+                      const isPending = u.verificationStatus === 'PENDING';
+                      const isVerified = u.verificationStatus === 'VERIFIED';
+                      const isRejected = u.verificationStatus === 'REJECTED';
+                      const isCurrentProcessing = processingUserId === u.id;
+                      const isUserAdmin = u.roles?.includes('ADMIN') || u.role === 'ADMIN';
+
+                      return (
+                        <tr
+                          key={u.id}
+                          className={`hover:bg-slate-50/80 transition-colors ${
+                            isPending ? 'bg-amber-50/30' : ''
+                          }`}
+                        >
+                          {/* Business & Contact */}
+                          <td className="px-5 py-3.5">
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-slate-900 block text-xs">
+                                {u.businessName || 'Business Name Unspecified'}
+                              </span>
+                              <span className="text-[11px] text-slate-600 font-medium block">
+                                Owner: {u.fullName}
+                              </span>
+                              <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] text-slate-400">
+                                <span className="inline-flex items-center gap-1">
+                                  <Mail className="w-3 h-3 text-slate-400" />
+                                  <span>{u.email}</span>
+                                </span>
+                                {u.phone && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Phone className="w-3 h-3 text-slate-400" />
+                                    <span>{u.phone}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Role */}
+                          <td className="px-5 py-3.5">
+                            {isUserAdmin ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                ADMIN
+                              </span>
+                            ) : u.roles?.includes('SUPPLIER') || u.role === 'SUPPLIER' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                SUPPLIER
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                BUYER
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Government KYC Credentials */}
+                          <td className="px-5 py-3.5">
+                            <div className="space-y-1 font-mono text-[11px]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
+                                  PAN:
+                                </span>
+                                <span className="font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                  {u.panNumber || u.maskedPan || 'None'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
+                                  Citizenship:
+                                </span>
+                                <span className="font-semibold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                  {u.citizenshipNumber || u.maskedCitizenship || 'None'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Settlement Wallet */}
+                          <td className="px-5 py-3.5">
+                            {u.wallet ? (
+                              <a
+                                href={getExplorerAccountUrl(u.wallet)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-[11px] text-emerald-800 hover:text-emerald-950 font-semibold inline-flex items-center gap-1"
+                              >
+                                {shortenAddress(u.wallet, 4)}
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-[11px] italic">
+                                Wallet not linked
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Compliance Status */}
+                          <td className="px-5 py-3.5">
+                            <div className="space-y-1">
+                              {isVerified ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Verified &amp; Approved</span>
+                                </span>
+                              ) : isRejected ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Compliance Rejected</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+                                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Review Pending</span>
+                                </span>
+                              )}
+
+                              {u.verificationNotes && (
+                                <p className="text-[10px] text-slate-500 italic max-w-xs line-clamp-2">
+                                  &ldquo;{u.verificationNotes}&rdquo;
+                                </p>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-5 py-3.5 text-right">
+                            {isUserAdmin ? (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                System Administrator
+                              </span>
+                            ) : isCurrentProcessing ? (
+                              <div className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Updating...</span>
+                              </div>
+                            ) : isPending ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetVerificationStatus(u.id, 'VERIFIED')}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition-colors"
+                                  title="Approve PAN and citizenship credentials"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Approve &amp; Verify</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetVerificationStatus(u.id, 'REJECTED')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-colors"
+                                  title="Reject compliance review"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Reject</span>
+                                </button>
+                              </div>
+                            ) : isVerified ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Active</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetVerificationStatus(u.id, 'PENDING', 'Re-evaluation requested by admin compliance officer.')}
+                                  className="text-[11px] text-slate-400 hover:text-slate-600 underline font-medium"
+                                  title="Reset account to pending review"
+                                >
+                                  Re-audit
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSetVerificationStatus(u.id, 'VERIFIED')}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-colors"
+                              >
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Re-approve</span>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );

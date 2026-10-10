@@ -515,6 +515,26 @@ export const updateUserAccount = (id: string, updates: Partial<UserAccount>): Us
   return sanitizeUser(users[idx]);
 };
 
+export const getAllUsers = (): (UserProfile & { citizenshipNumber?: string; panNumber?: string })[] => {
+  const users = getUsers();
+  return users.map((u) => ({
+    ...sanitizeUser(u),
+    citizenshipNumber: u.citizenshipNumber,
+    panNumber: u.panNumber,
+  }));
+};
+
+export const updateVerificationStatus = (
+  id: string,
+  status: VerificationStatus,
+  notes?: string
+): UserProfile | null => {
+  return updateUserAccount(id, {
+    verificationStatus: status,
+    ...(notes !== undefined ? { verificationNotes: notes } : {}),
+  });
+};
+
 // Sessions
 export const getSessions = (): SessionRecord[] => {
   return readJsonFile<SessionRecord[]>(SESSIONS_FILE, []);

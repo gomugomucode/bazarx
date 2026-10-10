@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { store, hashPassword } from '../store';
-import { UserAccount, UserProfile, UserRole } from '../types';
+import { UserAccount, UserProfile, UserRole, VerificationStatus } from '../types';
+import { getAuthUser } from './auth';
 
 const router = Router();
 const SOLANA_PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -105,6 +106,60 @@ router.post('/profile', (req: Request, res: Response) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// GET /api/users (Admin only: view all users for compliance review)
+router.get('/', (req: Request, res: Response) => {
+  const user = getAuthUser(req);
+  if (!user || (!user.roles?.includes('ADMIN') && user.role !== 'ADMIN')) {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin permissions required to view user directory.',
+      users: [],
+    });
+  }
+
+  const status = req.query.status as string | undefined;
+  const role = req.query.role as string | undefined;
+  let allUsers = store.getAllUsers();
+
+  if (status && status !== 'All') {
+    allUsers = allUsers.filter((u) => u.verificationStatus === status);
+  }
+  if (role && role !== 'All') {
+    allUsers = allUsers.filter((u) => u.roles?.includes(role as any) || u.role === role);
+  }
+
+  return res.json({ success: true, users: allUsers });
+});
+
+// PATCH /api/users/:id/verification (Admin only: approve or reject business verification)
+router.patch('/:id/verification', (req: Request, res: Response) => {
+  const user = getAuthUser(req);
+  if (!user || (!user.roles?.includes('ADMIN') && user.role !== 'ADMIN')) {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin permissions required to perform compliance verification.',
+    });
+  }
+
+  const { status, notes } = req.body;
+  if (!status || !['VERIFIED', 'PENDING', 'REJECTED'].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Valid verification status (VERIFIED, PENDING, REJECTED) is required.',
+    });
+  }
+
+  const updated = store.updateVerificationStatus(req.params.id, status as VerificationStatus, notes);
+  if (!updated) {
+    return res.status(404).json({
+      success: false,
+      error: 'User account not found.',
+    });
+  }
+
+  return res.json({ success: true, user: updated });
 });
 
 export default router;

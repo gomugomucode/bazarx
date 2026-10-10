@@ -36,14 +36,445 @@
     "updatedAt": "2026-10-04T08:00:00.000Z"
   },
   {
-    "id": "usr_admin_01",
-    "email": "admin@bazarx.com",
+    "id": "usr_1791127202049_cac48e46",
+    "email": "testbuyer_1791127202035@bazarx.com",
     "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
-    "fullName": "BazaarX Compliance Officer",
-    "businessName": "BazaarX Protocol Administrator",
-    "phone": "+977-9801234567",
-    "citizenshipNumber": "01-01-55-00001",
-    "panNumber": "100000001",
+    "fullName": "New Test Buyer",
+    "businessName": "Pokhara Retail Traders",
+    "phone": "+977-9801122334",
+    "citizenshipNumber": "27-01-78-01234",
+    "panNumber": "601234567",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T15:20:02.049Z",
+    "updatedAt": "2026-10-04T15:20:02.351Z",
+    "wallet": "6VBKbKRZJ9Vq3ui92JwnuddegkCrGPPmPmKEE2uCEM1K"
+  },
+  {
+    "id": "usr_1791127270776_1149525b",
+    "email": "testbuyer_1791127270706@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "New Test Buyer",
+    "businessName": "Pokhara Retail Traders",
+    "phone": "+977-9801122334",
+    "citizenshipNumber": "27-01-78-01234",
+    "panNumber": "601234567",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T15:21:10.776Z",
+    "updatedAt": "2026-10-04T15:21:10.776Z"
+  },
+  {
+    "id": "usr_1791130247235_75de1236",
+    "email": "unrelated_1791130246980@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T16:10:47.235Z",
+    "updatedAt": "2026-10-04T16:10:47.235Z"
+  },
+  {
+    "id": "usr_1791130301787_6db04a5b",
+    "email": "unrelated_1791130301776@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T16:11:41.787Z",
+    "updatedAt": "2026-10-04T16:11:41.787Z"
+  },
+  {
+    "id": "usr_1791130407823_0a724b94",
+    "email": "unrelated_1791130407519@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T16:13:27.823Z",
+    "updatedAt": "2026-10-04T16:13:27.823Z"
+  },
+  {
+    "id": "usr_1791134201884_82941ac7",
+    "email": "unrelated_1791134201872@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-04T17:16:41.884Z",
+    "updatedAt": "2026-10-04T17:16:41.884Z"
+  },
+  {
+    "id": "usr_1791171992066_363a612a",
+    "email": "unrelated_1791171991786@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-05T03:46:32.066Z",
+    "updatedAt": "2026-10-05T03:46:32.066Z"
+  },
+  {
+    "id": "usr_1791187506915_5838f7ea",
+    "email": "yarshabyte@gmail.com",
+    "passwordHash": "534a253f1293f73d81afdf79ebfd9685b97a3c2eb2045eb8d09fc6fb4f56091f821db7fb80bb4d7de3272b377555d323210ad0ce903ec14ba3f3b36dbea4ef98",
+    "fullName": "Yarsha",
+    "businessName": "Yarsha Byte",
+    "phone": "+977 9808200850",
+    "citizenshipNumber": "02334214324",
+    "panNumber": "1243123213",
+    "role": "SUPPLIER",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Supplier profile submitted. Verification pending administrative compliance review.",
+    "createdAt": "2026-10-05T08:05:06.915Z",
+    "updatedAt": "2026-10-05T08:05:06.915Z"
+  },
+  {
+    "id": "usr_1791188010215_dcd3485e",
+    "email": "unrelated_1791188009880@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-05T08:13:30.215Z",
+    "updatedAt": "2026-10-05T08:13:30.215Z"
+  },
+  {
+    "id": "usr_1791188536953_562c981f",
+    "email": "unrelated_1791188536472@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-05T08:22:16.953Z",
+    "updatedAt": "2026-10-05T08:22:16.953Z"
+  },
+  {
+    "id": "usr_1791188589443_d48c2dd5",
+    "email": "unrelated_1791188589184@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-05T08:23:09.443Z",
+    "updatedAt": "2026-10-05T08:23:09.443Z"
+  },
+  {
+    "id": "usr_1791381027983_9631fe56",
+    "email": "unrelated_1791381027581@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T13:50:27.983Z",
+    "updatedAt": "2026-10-07T13:50:27.983Z"
+  },
+  {
+    "id": "usr_1791381222951_e90579e3",
+    "email": "unrelated_1791381222647@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T13:53:42.951Z",
+    "updatedAt": "2026-10-07T13:53:42.951Z"
+  },
+  {
+    "id": "usr_1791382768652_21814dc5",
+    "email": "unrelated_1791382768430@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T14:19:28.652Z",
+    "updatedAt": "2026-10-07T14:19:28.652Z"
+  },
+  {
+    "id": "usr_1791384113206_3dcce6d0",
+    "email": "unrelated_1791384112916@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T14:41:53.206Z",
+    "updatedAt": "2026-10-07T14:41:53.206Z"
+  },
+  {
+    "id": "usr_supplier_02",
+    "email": "supplier2@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Purna Bahadur Gurung",
+    "businessName": "Annapurna Grains & Flour Mills",
+    "phone": "+977-9846123456",
+    "citizenshipNumber": "44-01-71-99887",
+    "panNumber": "302998877",
+    "role": "SUPPLIER",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "verificationStatus": "VERIFIED",
+    "wallet": "SuppL2erAnnapurna1111111111111111111111111111",
+    "createdAt": "2026-10-04T08:00:00.000Z",
+    "updatedAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "id": "usr_supplier_pending",
+    "email": "pending_supplier@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Santosh Neupane",
+    "businessName": "Pokhara Agro Ventures (Pending)",
+    "phone": "+977-9856012345",
+    "citizenshipNumber": "45-01-70-11223",
+    "panNumber": "301122334",
+    "role": "SUPPLIER",
+    "roles": [
+      "SUPPLIER"
+    ],
+    "verificationStatus": "PENDING",
+    "wallet": "9PendingSupplierWallet1111111111111111111111",
+    "createdAt": "2026-10-04T08:00:00.000Z",
+    "updatedAt": "2026-10-04T08:00:00.000Z"
+  },
+  {
+    "id": "usr_1791386171365_7454be0d",
+    "email": "unrelated_1791386171136@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T15:16:11.365Z",
+    "updatedAt": "2026-10-07T15:16:11.365Z"
+  },
+  {
+    "id": "usr_1791388901884_8ada3092",
+    "email": "unrelated_1791388901670@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T16:01:41.884Z",
+    "updatedAt": "2026-10-07T16:01:41.884Z"
+  },
+  {
+    "id": "usr_1791394964736_f311dc20",
+    "email": "unrelated_1791394964300@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T17:42:44.736Z",
+    "updatedAt": "2026-10-07T17:42:44.736Z"
+  },
+  {
+    "id": "usr_1791395104368_32da08ab",
+    "email": "unrelated_1791395104039@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T17:45:04.368Z",
+    "updatedAt": "2026-10-07T17:45:04.368Z"
+  },
+  {
+    "id": "usr_1791397292721_fac0036e",
+    "email": "unrelated_1791397292563@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-07T18:21:32.721Z",
+    "updatedAt": "2026-10-07T18:21:32.721Z"
+  },
+  {
+    "id": "usr_1791513436456_34d56b6f",
+    "email": "unrelated_1791513436052@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-09T02:37:16.456Z",
+    "updatedAt": "2026-10-09T02:37:16.456Z"
+  },
+  {
+    "id": "usr_1791521270135_b13a1be2",
+    "email": "unrelated_1791521269772@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-09T04:47:50.135Z",
+    "updatedAt": "2026-10-09T04:47:50.135Z"
+  },
+  {
+    "id": "usr_1791521381773_e9928183",
+    "email": "unrelated_1791521381497@bazarx.com",
+    "passwordHash": "92fabb9e15bc66b49a2a158f2407d75f792eeaeb053ee6d7aa64b914b4e5478f48c7f86a692bd68b36618a51b0c990c084a7379fbee742e50b52fe3f07039cb5",
+    "fullName": "Unrelated Trader",
+    "businessName": "Unrelated Traders Pvt Ltd",
+    "phone": "+977-9811223344",
+    "citizenshipNumber": "99-88-77-66554",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-09T04:49:41.773Z",
+    "updatedAt": "2026-10-09T04:49:41.773Z"
+  },
+  {
+    "id": "usr_1791606838972_4e19329d",
+    "email": "admin@anupambaral.com.np",
+    "passwordHash": "f6feef54fcac6ecf2919d561083f54c4b7732b58dd280d7b5a45fd9ea915662fb9368a1fb57c97ee2c72f0f84dcf665c0f849f8b0a60c457a0ba86900fc5e7e5",
+    "fullName": "Anupam",
+    "businessName": "yarsabyte",
+    "phone": "9808200850",
+    "citizenshipNumber": "235456",
+    "panNumber": "243423424",
     "role": "ADMIN",
     "roles": [
       "ADMIN",
@@ -51,8 +482,27 @@
       "SUPPLIER"
     ],
     "verificationStatus": "VERIFIED",
-    "wallet": "HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV",
-    "createdAt": "2026-10-04T08:00:00.000Z",
-    "updatedAt": "2026-10-04T08:00:00.000Z"
+    "verificationNotes": "Verified Protocol Administrator",
+    "createdAt": "2026-10-10T04:33:58.972Z",
+    "updatedAt": "2026-10-10T04:38:26.289Z",
+    "wallet": "HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV"
+  },
+  {
+    "id": "usr_1791607284738_7032831e",
+    "email": "yarshabyte@gmal.com",
+    "passwordHash": "b47be61a74b4f80d4b6a8404634a03f2597905c8d104b86652693490d6eb824c86c67f5005c50554cb9a7d87ca337af3b1f64eb6fb0e4e742b37c1624e7f729b",
+    "fullName": "yarshabyte",
+    "businessName": "Yarsshabyte",
+    "phone": "9767606309",
+    "citizenshipNumber": "2343567",
+    "panNumber": "34324242w",
+    "role": "BUYER",
+    "roles": [
+      "BUYER"
+    ],
+    "verificationStatus": "PENDING",
+    "verificationNotes": "Buyer profile submitted. Verification pending.",
+    "createdAt": "2026-10-10T04:41:24.738Z",
+    "updatedAt": "2026-10-10T04:41:24.738Z"
   }
 ]

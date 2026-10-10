@@ -170,10 +170,10 @@
     "roles": [
       "SUPPLIER"
     ],
-    "verificationStatus": "PENDING",
-    "verificationNotes": "Supplier profile submitted. Verification pending administrative compliance review.",
+    "verificationStatus": "VERIFIED",
+    "verificationNotes": "Approved by admin compliance officer",
     "createdAt": "2026-10-05T08:05:06.915Z",
-    "updatedAt": "2026-10-05T08:05:06.915Z"
+    "updatedAt": "2026-10-10T05:21:40.131Z"
   },
   {
     "id": "usr_1791188010215_dcd3485e",

@@ -11,6 +11,7 @@ import {
   UserProfile,
   SessionRecord,
   UserRole,
+  VerificationStatus,
 } from './types';
 import { INITIAL_PRODUCTS, INITIAL_ORDERS } from './mockData';
 
@@ -303,6 +304,33 @@ class Store {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
+    this.saveUsersToDisk(users);
+    return sanitizeUser(users[idx]);
+  }
+
+  getAllUsers(): (UserProfile & { citizenshipNumber?: string; panNumber?: string })[] {
+    const users = this.getUsersFromDisk();
+    return users.map((u) => ({
+      ...sanitizeUser(u),
+      citizenshipNumber: u.citizenshipNumber,
+      panNumber: u.panNumber,
+    }));
+  }
+
+  updateVerificationStatus(
+    id: string,
+    status: VerificationStatus,
+    notes?: string
+  ): UserProfile | null {
+    const users = this.getUsersFromDisk();
+    const idx = users.findIndex((u) => u.id === id);
+    if (idx === -1) return null;
+
+    users[idx].verificationStatus = status;
+    if (notes !== undefined) {
+      users[idx].verificationNotes = notes;
+    }
+    users[idx].updatedAt = new Date().toISOString();
     this.saveUsersToDisk(users);
     return sanitizeUser(users[idx]);
   }
