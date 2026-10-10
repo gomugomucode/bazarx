@@ -358,5 +358,25 @@
     "id": "prod-1791521359177-270",
     "createdAt": "2026-10-09T04:49:19.177Z",
     "updatedAt": "2026-10-09T04:49:19.676Z"
+  },
+  {
+    "name": "trying",
+    "category": "Grocery",
+    "description": "thsiis the test product",
+    "priceUsdc": 50,
+    "priceNpr": 6650,
+    "unit": "piece",
+    "minOrder": 5,
+    "availableStock": 100,
+    "supplierId": "usr_1791187506915_5838f7ea",
+    "supplierName": "Yarsha Byte",
+    "supplierLocation": "Nepal",
+    "supplierWallet": "",
+    "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
+    "sku": "SKU-2382",
+    "status": "Draft",
+    "id": "prod-1791606696432-573",
+    "createdAt": "2026-10-10T04:31:36.432Z",
+    "updatedAt": "2026-10-10T04:31:36.432Z"
   }
 ]
