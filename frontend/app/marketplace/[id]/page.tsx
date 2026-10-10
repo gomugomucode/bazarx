@@ -24,6 +24,8 @@ import {
   Truck,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  ArrowRight,
   ExternalLink,
   Wallet,
   Building,
@@ -111,6 +113,13 @@ export default function ProductDetailPage() {
         (user.wallet && product.supplierWallet.toLowerCase() === user.wallet.toLowerCase()))
   );
 
+  const SOLANA_PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  const isSupplierWalletValid = Boolean(
+    product &&
+      product.supplierWallet &&
+      SOLANA_PUBKEY_REGEX.test(product.supplierWallet.trim())
+  );
+
   const totalAmountUsdc = product.priceUsdc * quantity;
   const totalAmountNpr = product.priceNpr * quantity;
 
@@ -127,7 +136,15 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // 3. Validate quantity against MOQ and stock
+    // 3. Ensure recipient supplier wallet is configured
+    if (!isSupplierWalletValid) {
+      setErrorMsg(
+        `Supplier (${product.supplierName}) has not configured a valid Solana settlement wallet yet. Wholesale escrow orders cannot be initialized until the supplier links their wallet.`
+      );
+      return;
+    }
+
+    // 4. Validate quantity against MOQ and stock
     if (quantity < product.minOrder) {
       setErrorMsg(`Order quantity must be at least the MOQ (${product.minOrder} ${product.unit}).`);
       return;
@@ -159,7 +176,7 @@ export default function ProductDetailPage() {
 
           // Amount in micro-USDC (6 decimals)
           const amountMicroUsdc = new BN(totalAmountUsdc).mul(new BN(1_000_000));
-          const supplierPubkey = new PublicKey(product.supplierWallet);
+          const supplierPubkey = new PublicKey(product.supplierWallet.trim());
 
           setTxStage('sending');
 
@@ -317,9 +334,16 @@ export default function ProductDetailPage() {
               </div>
               <div className="sm:col-span-2">
                 <span className="text-slate-400 block mb-0.5">Supplier Settlement Wallet</span>
-                <code className="font-mono text-[11px] text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 block truncate">
-                  {product.supplierWallet}
-                </code>
+                {isSupplierWalletValid ? (
+                  <code className="font-mono text-[11px] text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 block truncate">
+                    {product.supplierWallet}
+                  </code>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Not Configured (Supplier has not linked a settlement wallet yet)</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -507,10 +531,40 @@ export default function ProductDetailPage() {
             </div>
           )}
 
+          {/* Missing Supplier Settlement Wallet Notice */}
+          {!isSupplierWalletValid && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-semibold text-amber-900">
+                    Supplier Settlement Wallet Missing
+                  </strong>
+                  <span className="text-[11px] text-amber-800 leading-relaxed block mt-0.5">
+                    This supplier (<strong>{product.supplierName}</strong>) has not configured a Solana settlement wallet. On-chain escrow requires a destination address to route payout upon confirmed delivery.
+                  </span>
+                </div>
+              </div>
+              {isOwner ? (
+                <Link
+                  href="/profile#wallet"
+                  className="inline-flex items-center gap-1 font-bold text-xs text-emerald-700 hover:text-emerald-800 underline pt-1"
+                >
+                  <span>Go to Profile to link your settlement wallet</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              ) : (
+                <p className="text-[10px] text-amber-700">
+                  The supplier must sign in to their account and link their settlement wallet under Profile before wholesale orders can be placed.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Action CTA: Place Order */}
           <button
             onClick={handleCreateOrder}
-            disabled={creating || isOwner || Boolean(successMsg)}
+            disabled={creating || isOwner || Boolean(successMsg) || !isSupplierWalletValid}
             className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             id="btn-place-wholesale-order"
           >
@@ -521,6 +575,11 @@ export default function ProductDetailPage() {
               </>
             ) : isOwner ? (
               <span>Self-Trading Prohibited</span>
+            ) : !isSupplierWalletValid ? (
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <span>Supplier Settlement Wallet Not Linked</span>
+              </span>
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />

@@ -174,6 +174,20 @@ export const getProducts = (filters?: {
   sortBy?: string | null;
 }): Product[] => {
   let products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+  const users = getUsers();
+  const userWalletMap = new Map<string, string>();
+  for (const u of users) {
+    if (u.wallet) userWalletMap.set(u.id, u.wallet);
+  }
+
+  // Auto-enrich product supplierWallet if empty on disk but linked on supplier profile
+  for (const p of products) {
+    if ((!p.supplierWallet || p.supplierWallet.trim() === '') && p.supplierId) {
+      const w = userWalletMap.get(p.supplierId);
+      if (w) p.supplierWallet = w;
+    }
+  }
+
   global.__bazaarx_products = products;
 
   if (filters?.supplierId) {
@@ -235,7 +249,17 @@ export const getProducts = (filters?: {
 
 export const getProductById = (id: string): Product | undefined => {
   const products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
-  return products.find((p) => p.id === id);
+  const product = products.find((p) => p.id === id);
+  if (!product) return undefined;
+
+  if ((!product.supplierWallet || product.supplierWallet.trim() === '') && product.supplierId) {
+    const users = getUsers();
+    const supplier = users.find((u) => u.id === product.supplierId);
+    if (supplier?.wallet) {
+      product.supplierWallet = supplier.wallet;
+    }
+  }
+  return product;
 };
 
 export const addProduct = (
@@ -509,6 +533,29 @@ export const updateUserAccount = (id: string, updates: Partial<UserAccount>): Us
   if (idx === -1) return null;
   users[idx] = { ...users[idx], ...updates, updatedAt: new Date().toISOString() };
   writeJsonFile(USERS_FILE, users);
+
+  // If wallet was updated or cleared, sync all listings owned by this supplier
+  if (updates.wallet !== undefined) {
+    const products = readJsonFile<Product[]>(PRODUCTS_FILE, INITIAL_PRODUCTS);
+    let changed = false;
+    const targetUser = users[idx];
+    for (const p of products) {
+      if (
+        p.supplierId === id ||
+        p.supplierName === targetUser.businessName ||
+        p.supplierName === targetUser.fullName
+      ) {
+        p.supplierWallet = updates.wallet || '';
+        p.updatedAt = new Date().toISOString();
+        changed = true;
+      }
+    }
+    if (changed) {
+      writeJsonFile(PRODUCTS_FILE, products);
+      global.__bazaarx_products = products;
+    }
+  }
+
   return sanitizeUser(users[idx]);
 };
 

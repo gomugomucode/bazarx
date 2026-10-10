@@ -301,6 +301,28 @@ class Store {
       updatedAt: new Date().toISOString(),
     };
     this.saveUsersToDisk(users);
+
+    // If wallet was updated or cleared, sync all listings owned by this supplier
+    if (updates.wallet !== undefined) {
+      const products = this.getProductsFromDisk();
+      let changed = false;
+      const targetUser = users[idx];
+      for (const p of products) {
+        if (
+          p.supplierId === id ||
+          p.supplierName === targetUser.businessName ||
+          p.supplierName === targetUser.fullName
+        ) {
+          p.supplierWallet = updates.wallet || '';
+          p.updatedAt = new Date().toISOString();
+          changed = true;
+        }
+      }
+      if (changed) {
+        this.saveProductsToDisk(products);
+      }
+    }
+
     return sanitizeUser(users[idx]);
   }
 
@@ -341,6 +363,19 @@ class Store {
     sortBy?: string | null;
   }): Product[] {
     let products = this.getProductsFromDisk();
+    const users = this.getUsersFromDisk();
+    const userWalletMap = new Map<string, string>();
+    for (const u of users) {
+      if (u.wallet) userWalletMap.set(u.id, u.wallet);
+    }
+
+    // Auto-enrich product supplierWallet if empty on disk but linked on supplier profile
+    for (const p of products) {
+      if ((!p.supplierWallet || p.supplierWallet.trim() === '') && p.supplierId) {
+        const w = userWalletMap.get(p.supplierId);
+        if (w) p.supplierWallet = w;
+      }
+    }
 
     if (filters?.supplierId) {
       products = products.filter((p) => p.supplierId === filters.supplierId);
@@ -402,7 +437,17 @@ class Store {
 
   getProductById(id: string): Product | undefined {
     const products = this.getProductsFromDisk();
-    return products.find((p) => p.id === id);
+    const product = products.find((p) => p.id === id);
+    if (!product) return undefined;
+
+    if ((!product.supplierWallet || product.supplierWallet.trim() === '') && product.supplierId) {
+      const users = this.getUsersFromDisk();
+      const supplier = users.find((u) => u.id === product.supplierId);
+      if (supplier?.wallet) {
+        product.supplierWallet = supplier.wallet;
+      }
+    }
+    return product;
   }
 
   addProduct(productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Product {

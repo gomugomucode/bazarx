@@ -160,11 +160,20 @@ router.post('/', (req: Request, res: Response) => {
     const effectiveBuyerWallet = (buyerWallet || user.wallet || '').trim().toLowerCase();
     if (
       (product.supplierId && product.supplierId === user.id) ||
-      (effectiveBuyerWallet && product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet)
+      (effectiveBuyerWallet && product.supplierWallet && product.supplierWallet.trim().toLowerCase() === effectiveBuyerWallet)
     ) {
       return res.status(400).json({
         success: false,
         error: 'Suppliers cannot purchase their own products (self-trading prohibited).',
+      });
+    }
+
+    // Supplier settlement wallet must be configured
+    const SOLANA_PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    if (!product.supplierWallet || !SOLANA_PUBKEY_REGEX.test(product.supplierWallet.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'This wholesale supplier has not linked a valid Solana settlement wallet yet.',
       });
     }
 
