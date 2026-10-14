@@ -76,23 +76,36 @@ export async function POST(request: Request) {
     });
 
     const data = await res.json();
-    const nextRes = NextResponse.json(data, { status: res.status });
+    if (res.ok && data.success && data.user) {
+      try {
+        const { saveUserAccount, createSession } = await import('@/lib/store');
+        saveUserAccount(data.user);
+        if (data.token) {
+          createSession(data.user.id, data.token);
+        }
+      } catch (e) {
+        console.warn('Sync registered user error:', e);
+      }
 
-    const setCookie = res.headers.get('set-cookie');
-    if (setCookie) {
-      nextRes.headers.set('Set-Cookie', setCookie);
-    } else if (data.token) {
-      nextRes.cookies.set({
-        name: 'bazarx_session',
-        value: data.token,
-        httpOnly: true,
-        path: '/',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 3600,
-      });
+      const nextRes = NextResponse.json(data, { status: res.status });
+
+      const setCookie = res.headers.get('set-cookie');
+      if (setCookie) {
+        nextRes.headers.set('Set-Cookie', setCookie);
+      } else if (data.token) {
+        nextRes.cookies.set({
+          name: 'bazarx_session',
+          value: data.token,
+          httpOnly: true,
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 3600,
+        });
+      }
+
+      return nextRes;
     }
-
-    return nextRes;
+    return NextResponse.json(data, { status: res.status });
   } catch (err: any) {
     // 2. Local store fallback
     try {

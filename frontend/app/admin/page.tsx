@@ -44,10 +44,15 @@ import {
   Mail,
   Loader2,
   Sparkles,
+  Copy,
+  Wallet,
+  Calendar,
 } from 'lucide-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function AdminProtocolPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, linkWallet, refreshUser } = useAuth();
+  const { publicKey, connected } = useWallet();
   const router = useRouter();
   const [configPda, configBump] = deriveConfigPda();
 
@@ -71,6 +76,56 @@ export default function AdminProtocolPage() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  // Inspector and Admin Wallet linking state
+  const [inspectingUser, setInspectingUser] = useState<
+    (UserProfile & { citizenshipNumber?: string; panNumber?: string }) | null
+  >(null);
+  const [inspectNotes, setInspectNotes] = useState<string>('');
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [adminLinkingWallet, setAdminLinkingWallet] = useState(false);
+
+  const handleCopyText = async (text: string, keyId: string) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedKey(keyId);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch (e) {
+      console.warn('Copy failed', e);
+    }
+  };
+
+  const handleLinkCurrentWalletToAdmin = async () => {
+    if (!publicKey) return;
+    setAdminLinkingWallet(true);
+    try {
+      await linkWallet(publicKey.toBase58());
+      if (refreshUser) await refreshUser();
+      await fetchUsers();
+      setActionNotice({
+        type: 'success',
+        message: `Admin settlement wallet successfully updated to ${shortenAddress(publicKey.toBase58(), 4)}.`,
+      });
+      setTimeout(() => setActionNotice(null), 5000);
+    } catch (err: any) {
+      setActionNotice({
+        type: 'error',
+        message: err.message || 'Failed to link admin settlement wallet',
+      });
+      setTimeout(() => setActionNotice(null), 5000);
+    } finally {
+      setAdminLinkingWallet(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchAllOrders() {
@@ -243,6 +298,36 @@ export default function AdminProtocolPage() {
     });
   }, [usersList, userStatusFilter, userRoleFilter, userSearchQuery]);
 
+  // Compute trade metrics for currently inspected user
+  const userStats = useMemo(() => {
+    if (!inspectingUser) {
+      return { ordersAsBuyer: 0, ordersAsSupplier: 0, buyerVol: 0, supplierVol: 0 };
+    }
+    const w = (inspectingUser.wallet || '').toLowerCase();
+    const bName = (inspectingUser.businessName || '').toLowerCase();
+    const fName = (inspectingUser.fullName || '').toLowerCase();
+
+    const buyerOrders = orders.filter(
+      (o) =>
+        (w && o.buyerWallet.toLowerCase() === w) ||
+        (bName && o.buyerName.toLowerCase() === bName) ||
+        (fName && o.buyerName.toLowerCase() === fName)
+    );
+    const supplierOrders = orders.filter(
+      (o) =>
+        (w && o.supplierWallet.toLowerCase() === w) ||
+        (bName && o.supplierName.toLowerCase() === bName) ||
+        (fName && o.supplierName.toLowerCase() === fName)
+    );
+
+    return {
+      ordersAsBuyer: buyerOrders.length,
+      ordersAsSupplier: supplierOrders.length,
+      buyerVol: buyerOrders.reduce((s, o) => s + o.amountUsdc, 0),
+      supplierVol: supplierOrders.reduce((s, o) => s + o.amountUsdc, 0),
+    };
+  }, [inspectingUser, orders]);
+
   // Handle Approve / Reject / Reset Verification
   const handleSetVerificationStatus = async (
     targetUserId: string,
@@ -284,6 +369,18 @@ export default function AdminProtocolPage() {
             : u
         )
       );
+
+      if (inspectingUser?.id === targetUserId) {
+        setInspectingUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                verificationStatus: nextStatus,
+                verificationNotes: customNotes || defaultNotes,
+              }
+            : null
+        );
+      }
 
       setActionNotice({
         type: 'success',
@@ -403,10 +500,34 @@ export default function AdminProtocolPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
             <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
               Admin: {user.email}
             </span>
+            {connected && publicKey ? (
+              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>Wallet: {shortenAddress(publicKey.toBase58(), 4)}</span>
+                {user.wallet && user.wallet.toLowerCase() === publicKey.toBase58().toLowerCase() ? (
+                  <span className="text-[10px] bg-emerald-200/70 text-emerald-900 font-bold px-1.5 py-0.5 rounded ml-1 font-sans">
+                    Linked
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={adminLinkingWallet}
+                    onClick={handleLinkCurrentWalletToAdmin}
+                    className="ml-1 text-[10px] bg-slate-900 hover:bg-slate-800 text-white font-bold px-2 py-0.5 rounded font-sans transition-colors disabled:opacity-50"
+                  >
+                    {adminLinkingWallet ? 'Linking...' : 'Link to Admin Profile'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-slate-400 border border-slate-200 px-2.5 py-1 rounded-lg italic font-sans">
+                Wallet disconnected
+              </span>
+            )}
           </div>
         </div>
 
@@ -956,8 +1077,15 @@ export default function AdminProtocolPage() {
                         >
                           {/* Business & Contact */}
                           <td className="px-5 py-3.5">
-                            <div className="space-y-0.5">
-                              <span className="font-bold text-slate-900 block text-xs">
+                            <div
+                              onClick={() => {
+                                setInspectingUser(u);
+                                setInspectNotes(u.verificationNotes || '');
+                              }}
+                              className="space-y-0.5 cursor-pointer group/user"
+                              title="Click to inspect user details"
+                            >
+                              <span className="font-bold text-slate-900 group-hover/user:text-emerald-700 group-hover/user:underline block text-xs transition-colors">
                                 {u.businessName || 'Business Name Unspecified'}
                               </span>
                               <span className="text-[11px] text-slate-600 font-medium block">
@@ -1066,61 +1194,76 @@ export default function AdminProtocolPage() {
 
                           {/* Actions */}
                           <td className="px-5 py-3.5 text-right">
-                            {isUserAdmin ? (
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                System Administrator
-                              </span>
-                            ) : isCurrentProcessing ? (
-                              <div className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Updating...</span>
-                              </div>
-                            ) : isPending ? (
-                              <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setInspectingUser(u);
+                                  setInspectNotes(u.verificationNotes || '');
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors border border-slate-200 shadow-2xs"
+                                title="Inspect full profile, KYC, and wallet details"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-600" />
+                                <span>Inspect</span>
+                              </button>
+
+                              {isUserAdmin ? (
+                                <span className="text-[10px] text-slate-400 font-mono px-2 py-1">
+                                  System Admin
+                                </span>
+                              ) : isCurrentProcessing ? (
+                                <div className="inline-flex items-center gap-1 text-xs text-slate-500 font-semibold px-2 py-1">
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Updating...</span>
+                                </div>
+                              ) : isPending ? (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetVerificationStatus(u.id, 'VERIFIED')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition-colors"
+                                    title="Approve PAN and citizenship credentials"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Approve</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetVerificationStatus(u.id, 'REJECTED')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-colors"
+                                    title="Reject compliance review"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>Reject</span>
+                                  </button>
+                                </div>
+                              ) : isVerified ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                                    <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>Active</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetVerificationStatus(u.id, 'PENDING', 'Re-evaluation requested by admin compliance officer.')}
+                                    className="text-[11px] text-slate-400 hover:text-slate-600 underline font-medium"
+                                    title="Reset account to pending review"
+                                  >
+                                    Re-audit
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
                                   type="button"
                                   onClick={() => handleSetVerificationStatus(u.id, 'VERIFIED')}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-2xs transition-colors"
-                                  title="Approve PAN and citizenship credentials"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-colors"
                                 >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Approve &amp; Verify</span>
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Re-approve</span>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSetVerificationStatus(u.id, 'REJECTED')}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs transition-colors"
-                                  title="Reject compliance review"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                  <span>Reject</span>
-                                </button>
-                              </div>
-                            ) : isVerified ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
-                                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Active</span>
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSetVerificationStatus(u.id, 'PENDING', 'Re-evaluation requested by admin compliance officer.')}
-                                  className="text-[11px] text-slate-400 hover:text-slate-600 underline font-medium"
-                                  title="Reset account to pending review"
-                                >
-                                  Re-audit
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleSetVerificationStatus(u.id, 'VERIFIED')}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-colors"
-                              >
-                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>Re-approve</span>
-                              </button>
-                            )}
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1242,6 +1385,292 @@ export default function AdminProtocolPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User KYC & Compliance Details Inspection Modal */}
+      {inspectingUser && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150"
+          onClick={() => setInspectingUser(null)}
+        >
+          <div
+            className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-6 bg-slate-900 text-white flex items-start justify-between gap-4">
+              <div className="space-y-1.5 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/10 text-emerald-400 border border-white/10">
+                    {inspectingUser.roles?.join(', ') || inspectingUser.role}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      inspectingUser.verificationStatus === 'VERIFIED'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : inspectingUser.verificationStatus === 'REJECTED'
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}
+                  >
+                    {inspectingUser.verificationStatus}
+                  </span>
+                </div>
+                <h3 className="text-xl font-black tracking-tight text-white">
+                  {inspectingUser.businessName || inspectingUser.fullName}
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-slate-300 font-mono">
+                  <span>ID: {inspectingUser.id}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(inspectingUser.id, 'userId')}
+                    className="hover:text-white p-0.5"
+                    title="Copy User ID"
+                  >
+                    {copiedKey === 'userId' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingUser(null)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content Body */}
+            <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700">
+              {/* Section 1: Business Profile & Primary Contact */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                  <Building className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Business Profile &amp; Primary Contact</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Full Legal Name</span>
+                    <span className="font-bold text-slate-900 text-sm">{inspectingUser.fullName}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Registered Entity</span>
+                    <span className="font-bold text-slate-900 text-sm">{inspectingUser.businessName || 'Not specified'}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Email Address</span>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <span className="font-semibold text-slate-800 truncate">{inspectingUser.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(inspectingUser.email, 'email')}
+                        className="text-slate-400 hover:text-slate-700 shrink-0"
+                      >
+                        {copiedKey === 'email' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Phone Number</span>
+                    <span className="font-semibold text-slate-800">{inspectingUser.phone || 'Not provided'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Government KYC & Tax Identifiers */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Government KYC &amp; Tax Identifiers</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Nepal Tax PAN</span>
+                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/70 px-1.5 py-0.5 rounded">Tax Verified</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <code className="font-mono font-bold text-slate-900 text-sm">
+                        {inspectingUser.panNumber || inspectingUser.maskedPan || 'None'}
+                      </code>
+                      {(inspectingUser.panNumber || inspectingUser.maskedPan) && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(inspectingUser.panNumber || inspectingUser.maskedPan || '', 'pan')}
+                          className="text-slate-400 hover:text-slate-700 p-1"
+                          title="Copy PAN"
+                        >
+                          {copiedKey === 'pan' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Citizenship Number</span>
+                      <span className="text-[10px] text-sky-700 font-bold bg-sky-100/70 px-1.5 py-0.5 rounded">MoHA Verified</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <code className="font-mono font-bold text-slate-900 text-sm">
+                        {inspectingUser.citizenshipNumber || inspectingUser.maskedCitizenship || 'None'}
+                      </code>
+                      {(inspectingUser.citizenshipNumber || inspectingUser.maskedCitizenship) && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(inspectingUser.citizenshipNumber || inspectingUser.maskedCitizenship || '', 'citizenship')}
+                          className="text-slate-400 hover:text-slate-700 p-1"
+                          title="Copy Citizenship"
+                        >
+                          {copiedKey === 'citizenship' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Solana Settlement Wallet */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-slate-500" />
+                  <span>On-Chain Settlement Wallet (Solana Devnet)</span>
+                </h4>
+                {inspectingUser.wallet ? (
+                  <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Registered Settlement Address</span>
+                      </span>
+                      <a
+                        href={getExplorerAccountUrl(inspectingUser.wallet)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:underline"
+                      >
+                        <span>View on Solana Explorer</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 bg-white p-2.5 rounded-lg border border-emerald-200 font-mono text-xs text-slate-900 break-all select-all">
+                      <span>{inspectingUser.wallet}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(inspectingUser.wallet!, 'wallet')}
+                        className="p-1.5 text-slate-500 hover:text-slate-800 shrink-0"
+                        title="Copy full public key"
+                      >
+                        {copiedKey === 'wallet' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center space-y-1">
+                    <p className="font-bold text-slate-700">No settlement wallet linked yet</p>
+                    <p className="text-[11px] text-slate-400">
+                      This user has registered an account but has not linked a Solana settlement wallet.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 4: Trade History & Volume */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-100 pb-1.5">
+                  <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Marketplace Orders &amp; Settlement Activity</span>
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 font-semibold block uppercase">Buyer Orders</span>
+                    <span className="text-base font-black text-slate-900">{userStats.ordersAsBuyer}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 font-semibold block uppercase">Buyer Volume</span>
+                    <span className="text-base font-black text-emerald-700">${userStats.buyerVol.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 font-semibold block uppercase">Supplier Orders</span>
+                    <span className="text-base font-black text-slate-900">{userStats.ordersAsSupplier}</span>
+                  </div>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] text-slate-400 font-semibold block uppercase">Supplier Volume</span>
+                    <span className="text-base font-black text-emerald-700">${userStats.supplierVol.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Compliance Audit Decision & Notes */}
+              {!inspectingUser.roles?.includes('ADMIN') && inspectingUser.role !== 'ADMIN' && (
+                <div className="space-y-3 pt-2 border-t border-slate-200">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Compliance Audit Decision &amp; Verification Notes</span>
+                  </h4>
+                  <div className="space-y-2">
+                    <textarea
+                      rows={2}
+                      value={inspectNotes}
+                      onChange={(e) => setInspectNotes(e.target.value)}
+                      placeholder="Enter verification notes, IRD tax review confirmation, or rejection rationale..."
+                      className="w-full p-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={processingUserId === inspectingUser.id}
+                        onClick={() => handleSetVerificationStatus(inspectingUser.id, 'VERIFIED', inspectNotes)}
+                        className="flex-1 min-w-[120px] py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Approve &amp; Verify</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingUserId === inspectingUser.id}
+                        onClick={() => handleSetVerificationStatus(inspectingUser.id, 'REJECTED', inspectNotes)}
+                        className="flex-1 min-w-[120px] py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject Compliance</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={processingUserId === inspectingUser.id}
+                        onClick={() => handleSetVerificationStatus(inspectingUser.id, 'PENDING', inspectNotes)}
+                        className="py-2 px-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                      >
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Reset Pending</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">
+                Registered on {new Date(inspectingUser.createdAt).toLocaleDateString()}
+              </span>
+              <button
+                type="button"
+                onClick={() => setInspectingUser(null)}
+                className="py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-colors"
+              >
+                Close Inspector
+              </button>
             </div>
           </div>
         </div>

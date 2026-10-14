@@ -18,18 +18,22 @@ import {
   ShieldCheck,
   HelpCircle,
   AlertTriangle,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
 export const WalletButton: React.FC = () => {
-  const { user } = useAuth();
+  const { user, linkWallet, refreshUser } = useAuth();
   const { publicKey, connected, connecting, disconnect, wallet, connect } = useWallet();
   const { setVisible } = useWalletModal();
   const { sol, usdc, loading: balanceLoading, refresh } = useWalletBalance();
 
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [linking, setLinking] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const autoLinkAttemptedRef = useRef<string | null>(null);
 
   const isMismatch = Boolean(
     connected &&
@@ -37,6 +41,27 @@ export const WalletButton: React.FC = () => {
     user?.wallet &&
     publicKey.toBase58().toLowerCase() !== user.wallet.trim().toLowerCase()
   );
+
+  // Auto-link connected wallet if logged in and user has no wallet linked yet
+  useEffect(() => {
+    if (connected && publicKey && user && !user.wallet && !linking) {
+      const pubkeyStr = publicKey.toBase58();
+      if (autoLinkAttemptedRef.current === pubkeyStr) return;
+      autoLinkAttemptedRef.current = pubkeyStr;
+
+      setLinking(true);
+      linkWallet(pubkeyStr)
+        .then(() => {
+          if (refreshUser) refreshUser();
+        })
+        .catch((err) => {
+          console.warn('Auto-link wallet error:', err);
+        })
+        .finally(() => {
+          setLinking(false);
+        });
+    }
+  }, [connected, publicKey, user, linkWallet, refreshUser, linking]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -146,6 +171,19 @@ export const WalletButton: React.FC = () => {
       ? 'Loading...'
       : '0.00 USDC';
 
+  const handleLinkActiveWallet = async () => {
+    if (!publicKey) return;
+    try {
+      setLinking(true);
+      await linkWallet(publicKey.toBase58());
+      if (refreshUser) await refreshUser();
+    } catch (err: any) {
+      alert(err.message || 'Failed to link settlement wallet');
+    } finally {
+      setLinking(false);
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Account Pill Trigger */}
@@ -196,23 +234,79 @@ export const WalletButton: React.FC = () => {
         <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-88 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Mismatch Alert inside dropdown */}
           {isMismatch && (
-            <div className="p-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-950 flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="font-bold block text-amber-900">
-                  Settlement Wallet Mismatch
-                </span>
-                <p className="text-[11px] text-amber-800 leading-snug">
-                  Connected wallet differs from your account&apos;s registered settlement wallet (<code className="font-mono">{shortenAddress(user?.wallet || '', 4)}</code>). On-chain escrow actions are restricted until resolved.
-                </p>
+            <div className="p-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-950 space-y-2">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold block text-amber-900">
+                    Settlement Wallet Mismatch
+                  </span>
+                  <p className="text-[11px] text-amber-800 leading-snug">
+                    Connected: <code className="font-mono font-bold">{shortenAddress(addressStr, 4)}</code>
+                    <br />
+                    Registered: <code className="font-mono font-bold">{shortenAddress(user?.wallet || 'None', 4)}</code>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={linking}
+                  onClick={handleLinkActiveWallet}
+                  className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
+                >
+                  {linking ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Link Active Wallet to Account</span>
+                </button>
                 <Link
                   href="/profile"
                   onClick={() => setIsOpen(false)}
-                  className="inline-block text-[11px] font-bold text-emerald-800 hover:underline pt-0.5"
+                  className="text-[11px] font-bold text-emerald-800 hover:underline px-2 py-1"
                 >
-                  Update Linked Wallet in Profile →
+                  Profile →
                 </Link>
               </div>
+            </div>
+          )}
+
+          {/* User has no wallet linked yet */}
+          {user && !user.wallet && (
+            <div className="p-3 bg-sky-50 border-b border-sky-200 text-xs text-sky-950 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sky-900">Wallet not linked to account</span>
+                <span className="text-[10px] bg-sky-200 text-sky-800 px-1.5 py-0.5 rounded font-semibold">Unlinked</span>
+              </div>
+              <button
+                type="button"
+                disabled={linking}
+                onClick={handleLinkActiveWallet}
+                className="w-full py-1.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
+              >
+                {linking ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span>Link This Wallet ({shortenAddress(addressStr, 4)})</span>
+              </button>
+            </div>
+          )}
+
+          {/* Already matched and linked */}
+          {user?.wallet && !isMismatch && (
+            <div className="px-4 py-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-xs">
+              <span className="text-[11px] font-semibold text-emerald-800 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Linked Settlement Wallet</span>
+              </span>
+              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded font-bold">
+                VERIFIED
+              </span>
             </div>
           )}
 

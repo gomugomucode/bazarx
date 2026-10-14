@@ -38,9 +38,16 @@ export async function PATCH(
       cache: 'no-store',
     });
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    if (res.ok && data.success) {
+      try {
+        const { updateVerificationStatus } = await import('@/lib/store');
+        updateVerificationStatus(userId, body.status, body.notes);
+      } catch (_) {}
+      return NextResponse.json(data, { status: res.status });
+    }
   } catch (err: any) {
     // 2. Local store fallback
+  }
     try {
       if (!token) {
         return NextResponse.json(
@@ -87,5 +94,4 @@ export async function PATCH(
         { status: 500 }
       );
     }
-  }
 }

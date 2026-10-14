@@ -74,9 +74,18 @@ export async function POST(request: Request) {
     });
 
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    if (res.ok && data.success && data.user) {
+      try {
+        const { updateUserAccount } = await import('@/lib/store');
+        updateUserAccount(data.user.id, { wallet: cleanWallet });
+      } catch (syncErr) {
+        console.warn('Sync to local store warning:', syncErr);
+      }
+      return NextResponse.json(data, { status: res.status });
+    }
   } catch (e) {
     // Local store fallback
+  }
     try {
       const { getSession, getUserByWallet, updateUserAccount } = await import('@/lib/store');
       const session = getSession(token);
@@ -95,5 +104,4 @@ export async function POST(request: Request) {
     } catch (err: any) {
       return NextResponse.json({ success: false, error: err.message || 'Failed to link wallet' }, { status: 500 });
     }
-  }
 }

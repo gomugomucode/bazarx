@@ -27,26 +27,34 @@ export async function POST(request: Request) {
     });
 
     const data = await res.json();
-    const nextRes = NextResponse.json(data, { status: res.status });
+    if (res.ok && data.success && data.token && data.user) {
+      try {
+        const { createSession } = await import('@/lib/store');
+        createSession(data.user.id, data.token);
+      } catch (_) {}
 
-    // Forward Set-Cookie header if present
-    const setCookie = res.headers.get('set-cookie');
-    if (setCookie) {
-      nextRes.headers.set('Set-Cookie', setCookie);
-    } else if (data.token) {
-      nextRes.cookies.set({
-        name: 'bazarx_session',
-        value: data.token,
-        httpOnly: true,
-        path: '/',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 3600,
-      });
+      const nextRes = NextResponse.json(data, { status: res.status });
+
+      // Forward Set-Cookie header if present
+      const setCookie = res.headers.get('set-cookie');
+      if (setCookie) {
+        nextRes.headers.set('Set-Cookie', setCookie);
+      } else if (data.token) {
+        nextRes.cookies.set({
+          name: 'bazarx_session',
+          value: data.token,
+          httpOnly: true,
+          path: '/',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 3600,
+        });
+      }
+
+      return nextRes;
     }
-
-    return nextRes;
   } catch (err: any) {
     // 2. Local store fallback
+  }
     try {
       const { getUserByEmail, verifyPassword, sanitizeUser, createSession } = await import('@/lib/store');
       const cleanEmail = String(email).trim().toLowerCase();
@@ -81,5 +89,4 @@ export async function POST(request: Request) {
     } catch (e: any) {
       return NextResponse.json({ success: false, error: e.message || 'Login error' }, { status: 500 });
     }
-  }
 }

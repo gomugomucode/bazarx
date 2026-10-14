@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "name": "basmate rice",
+    "category": "Grocery",
+    "description": "teast rice",
+    "priceUsdc": 1,
+    "priceNpr": 133,
+    "unit": "piece",
+    "minOrder": 1,
+    "availableStock": 100,
+    "supplierId": "usr_1791683622024_1e967a7d",
+    "supplierName": "yarsha byte it",
+    "supplierLocation": "Nepal",
+    "supplierWallet": "JCSnMsKGZLbac9RKGnpwqafFbnUJeZUeP59ZXQ8zarcj",
+    "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=800",
+    "sku": "SKU-4821",
+    "status": "Published",
+    "id": "prod-1791683823911-845",
+    "createdAt": "2026-10-11T01:57:03.911Z",
+    "updatedAt": "2026-10-11T01:58:21.401Z"
+  }
+]

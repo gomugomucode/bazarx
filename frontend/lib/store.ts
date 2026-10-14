@@ -55,36 +55,6 @@ export function sanitizeUser(user: UserAccount): UserProfile {
 
 export const INITIAL_ACCOUNTS: UserAccount[] = [
   {
-    id: 'usr_buyer_01',
-    email: 'buyer@bazarx.com',
-    passwordHash: hashPassword('password123'),
-    fullName: 'Ram Shrestha',
-    businessName: 'Kathmandu Valley Wholesale Buyer',
-    phone: '+977-9841234567',
-    citizenshipNumber: '27-01-72-12345',
-    panNumber: '601234567',
-    role: 'BUYER',
-    roles: ['BUYER'],
-    verificationStatus: 'VERIFIED',
-    createdAt: '2026-10-04T08:00:00.000Z',
-    updatedAt: '2026-10-04T08:00:00.000Z',
-  },
-  {
-    id: 'usr_supplier_01',
-    email: 'supplier@bazarx.com',
-    passwordHash: hashPassword('password123'),
-    fullName: 'Binod Chaudhary',
-    businessName: 'Terai Edible Oils & Food Industries',
-    phone: '+977-9851234567',
-    citizenshipNumber: '14-01-68-98765',
-    panNumber: '300987654',
-    role: 'SUPPLIER',
-    roles: ['SUPPLIER'],
-    verificationStatus: 'VERIFIED',
-    createdAt: '2026-10-04T08:00:00.000Z',
-    updatedAt: '2026-10-04T08:00:00.000Z',
-  },
-  {
     id: 'usr_1791606838972_4e19329d',
     email: 'admin@anupambaral.com.np',
     passwordHash: hashPassword('Admin@123'),
@@ -100,36 +70,6 @@ export const INITIAL_ACCOUNTS: UserAccount[] = [
     wallet: 'HZT8UtjPz3vHPLpgjmWSYYb3APyM67j2YYEqyy8iPepV',
     createdAt: '2026-10-10T04:33:58.972Z',
     updatedAt: '2026-10-10T04:33:58.972Z',
-  },
-  {
-    id: 'usr_supplier_02',
-    email: 'supplier2@bazarx.com',
-    passwordHash: hashPassword('password123'),
-    fullName: 'Purna Bahadur Gurung',
-    businessName: 'Annapurna Grains & Flour Mills',
-    phone: '+977-9846123456',
-    citizenshipNumber: '44-01-71-99887',
-    panNumber: '302998877',
-    role: 'SUPPLIER',
-    roles: ['SUPPLIER'],
-    verificationStatus: 'VERIFIED',
-    createdAt: '2026-10-04T08:00:00.000Z',
-    updatedAt: '2026-10-04T08:00:00.000Z',
-  },
-  {
-    id: 'usr_supplier_pending',
-    email: 'pending_supplier@bazarx.com',
-    passwordHash: hashPassword('password123'),
-    fullName: 'Santosh Neupane',
-    businessName: 'Pokhara Agro Ventures (Pending)',
-    phone: '+977-9856012345',
-    citizenshipNumber: '45-01-70-11223',
-    panNumber: '301122334',
-    role: 'SUPPLIER',
-    roles: ['SUPPLIER'],
-    verificationStatus: 'PENDING',
-    createdAt: '2026-10-04T08:00:00.000Z',
-    updatedAt: '2026-10-04T08:00:00.000Z',
   },
 ];
 
@@ -584,19 +524,26 @@ export const getSessions = (): SessionRecord[] => {
   return readJsonFile<SessionRecord[]>(SESSIONS_FILE, []);
 };
 
-export const createSession = (userId: string): SessionRecord => {
+export const createSession = (userId: string, customToken?: string): SessionRecord => {
   const sessions = getSessions();
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = customToken || crypto.randomBytes(32).toString('hex');
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
+  // If session with this token already exists, update expiry and userId
+  const existingIdx = sessions.findIndex((s) => s.token === token);
   const session: SessionRecord = {
     token,
     userId,
     createdAt: now.toISOString(),
     expiresAt,
   };
-  sessions.push(session);
+
+  if (existingIdx >= 0) {
+    sessions[existingIdx] = session;
+  } else {
+    sessions.push(session);
+  }
   writeJsonFile(SESSIONS_FILE, sessions);
   return session;
 };

@@ -59,8 +59,6 @@ function LoginFormContent() {
     setEmail(demoEmail);
     if (demoEmail === 'admin@anupambaral.com.np') {
       setPassword('Admin@123');
-    } else {
-      setPassword('password123');
     }
     setErrorMsg(null);
   };
@@ -151,29 +149,15 @@ function LoginFormContent() {
           {/* Quick Demo Accounts for Fast Testing */}
           <div className="pt-4 border-t border-slate-100 space-y-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-              Quick Fill Demo Accounts (Testing)
+              Quick Fill Protocol Administrator
             </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('buyer@bazarx.com')}
-                className="py-1.5 px-2 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-[11px] font-semibold text-slate-700 transition-colors text-center"
-              >
-                Buyer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('supplier@bazarx.com')}
-                className="py-1.5 px-2 rounded-lg border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 text-[11px] font-semibold text-slate-700 transition-colors text-center"
-              >
-                Supplier
-              </button>
+            <div>
               <button
                 type="button"
                 onClick={() => handleQuickFill('admin@anupambaral.com.np')}
-                className="py-1.5 px-2 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-[11px] font-semibold text-slate-700 transition-colors text-center"
+                className="w-full py-2 px-3 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-xs font-semibold text-slate-700 transition-colors text-center"
               >
-                Admin
+                Admin (admin@anupambaral.com.np)
               </button>
             </div>
           </div>

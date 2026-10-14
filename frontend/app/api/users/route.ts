@@ -26,9 +26,12 @@ export async function GET(request: Request) {
       cache: 'no-store',
     });
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    if (res.ok && data.success && Array.isArray(data.users)) {
+      return NextResponse.json(data, { status: res.status });
+    }
   } catch (err: any) {
     // 2. Local store fallback
+  }
     try {
       if (!token) {
         return NextResponse.json(
@@ -69,5 +72,4 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
-  }
 }
